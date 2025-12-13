@@ -114,6 +114,7 @@ const TASK_TEMPLATES = [
 const INITIAL_FORM_STATE = {
   groomName: '',
   brideName: '',
+  organizerName: '',
   date: '',
   guestsCount: '',
   prepLocation: 'home',
@@ -275,11 +276,22 @@ const Checkbox = ({ checked, onChange }) => (
 // --- SUB-VIEWS ---
 
 const TasksView = ({ tasks, updateProject, formatDate }) => {
-  const sortTasks = (taskList) => [...taskList].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  // Сортировка: Сначала по статусу (невыполненные выше), потом по дате
+  const sortTasks = (taskList) => [...taskList].sort((a, b) => {
+    if (a.done === b.done) {
+        return new Date(a.deadline) - new Date(b.deadline);
+    }
+    return a.done ? 1 : -1;
+  });
 
   const updateTask = (id, field, value) => {
-    const newTasks = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
-    updateProject('tasks', newTasks);
+    // При обновлении статуса сразу сортируем
+    const updatedList = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
+    if (field === 'done') {
+        updateProject('tasks', sortTasks(updatedList));
+    } else {
+        updateProject('tasks', updatedList);
+    }
   };
 
   const handleBlurSort = () => updateProject('tasks', sortTasks(tasks));
@@ -329,22 +341,27 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
         {tasks.map((task) => {
            const isOverdue = new Date(task.deadline) < new Date() && !task.done;
            return (
-            <div key={task.id} className={`group flex flex-col md:flex-row md:items-center p-4 bg-white rounded-xl border transition-all hover:shadow-md gap-4 print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:p-2 ${task.done ? 'opacity-50 border-transparent' : 'border-[#EBE5E0]'}`}>
-              <div className="flex items-center flex-1 gap-4">
-                <Checkbox 
-                  checked={task.done} 
-                  onChange={(checked) => updateTask(task.id, 'done', checked)} 
-                />
-                <div className="flex-1">
-                  <input
-                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
+            <div key={task.id} className={`group flex flex-col md:flex-row md:items-start p-4 bg-white rounded-xl border transition-all hover:shadow-md gap-4 print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:p-2 ${task.done ? 'opacity-50 border-transparent' : 'border-[#EBE5E0]'}`}>
+              <div className="flex items-start flex-1 gap-4">
+                <div className="pt-1">
+                    <Checkbox 
+                    checked={task.done} 
+                    onChange={(checked) => updateTask(task.id, 'done', checked)} 
+                    />
+                </div>
+                <div className="flex-1 min-w-0">
+                  {/* Заменили input на textarea для переноса строк */}
+                  <textarea
+                    rows={1}
+                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none resize-y min-h-[28px] overflow-hidden ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
                     value={task.text}
                     onChange={(e) => updateTask(task.id, 'text', e.target.value)}
+                    style={{ fieldSizing: 'content' }} // Новое свойство для авто-высоты
                   />
                 </div>
               </div>
               
-              <div className="flex items-center justify-between md:justify-end gap-4 pl-10 md:pl-0 w-full md:w-auto">
+              <div className="flex items-center justify-between md:justify-end gap-4 pl-10 md:pl-0 w-full md:w-auto mt-2 md:mt-0">
                 <div className="flex items-center gap-2 text-[#AC8A69] bg-[#F9F7F5] px-3 py-1.5 rounded-lg w-full md:w-[160px] print:bg-transparent print:p-0 print:w-auto">
                    <CalendarDays size={14} className="print:hidden"/>
                    <input 
@@ -451,10 +468,13 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
                   {expenses.map((item, idx) => (
                       <tr key={idx} className="hover:bg-[#F9F7F5]/50 group print:break-inside-avoid">
                       <td className="p-2 md:p-4 align-top">
-                          <input 
-                            className="w-full bg-transparent outline-none font-medium text-[#414942]"
+                          {/* Заменили input на textarea для переноса строк */}
+                          <textarea
+                            rows={1} 
+                            className="w-full bg-transparent outline-none font-medium text-[#414942] resize-y min-h-[24px]"
                             value={item.name} 
                             onChange={(e) => updateExpense(idx, 'name', e.target.value)} 
+                            style={{ fieldSizing: 'content' }}
                           />
                       </td>
                       <td className="p-2 md:p-4 align-top">
@@ -554,10 +574,43 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
             <h1 className="text-3xl font-serif text-[#414942]">Список гостей</h1>
             <p className="text-[#AC8A69] mb-4">Всего персон: {guests.length}</p>
           </div>
+          
+          {/* ТАБЛИЦА ДЛЯ ПЕЧАТИ (ВИДНА ТОЛЬКО ПРИ window.print) */}
+          <div className="hidden print:block w-full">
+            <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr className="border-b-2 border-black">
+                        <th className="py-2">ФИО</th>
+                        <th className="py-2">Стол</th>
+                        <th className="py-2">Еда/Напитки</th>
+                        <th className="py-2">Трансфер</th>
+                        <th className="py-2">Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {guests.map((g, i) => (
+                        <tr key={g.id} className="border-b border-gray-300 break-inside-avoid">
+                            <td className="py-2 pr-2">
+                                <div className="font-bold">{g.name}</div>
+                                <div className="text-xs text-gray-500">{g.seatingName}</div>
+                            </td>
+                            <td className="py-2 pr-2">{g.table}</td>
+                            <td className="py-2 pr-2">
+                                {g.food && <div>{g.food}</div>}
+                                {g.drinks && <div>{g.drinks}</div>}
+                            </td>
+                            <td className="py-2 pr-2">{g.transfer ? 'Да' : ''}</td>
+                            <td className="py-2 text-xs italic">{g.comment}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+          </div>
 
-          <div className="grid gap-4 print:block">
+          {/* ОБЫЧНЫЙ ВИД (СКРЫТ ПРИ ПЕЧАТИ) */}
+          <div className="grid gap-4 print:hidden">
               {guests.map((guest, idx) => (
-                  <Card key={guest.id} className="p-6 transition-all hover:shadow-md print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:break-inside-avoid">
+                  <Card key={guest.id} className="p-6 transition-all hover:shadow-md">
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
                           <div className="flex items-center justify-between w-full md:w-auto md:col-span-1 md:justify-center md:h-full">
                               <span className="w-8 h-8 rounded-full bg-[#CCBBA9]/30 text-[#936142] flex items-center justify-center font-bold text-sm">
@@ -848,7 +901,8 @@ export default function App() {
                     <p className="text-xs font-bold text-[#AC8A69] uppercase tracking-widest mb-3">{formatDate(p.date)}</p>
                     <h3 className="text-2xl font-serif text-[#414942] mb-1">{p.groomName} & {p.brideName}</h3>
                     <p className="text-[#CCBBA9] text-sm mb-6">{p.venueName || 'Локация не выбрана'}</p>
-                    
+                    {p.organizerName && <p className="text-[#AC8A69] text-xs font-medium">Org: {p.organizerName}</p>}
+
                     <div className="flex items-center justify-between mt-8 border-t border-[#F9F7F5] pt-4">
                         <span className="text-[#936142] group-hover:translate-x-1 transition-transform">
                             <ArrowRight size={20}/>
@@ -884,7 +938,12 @@ export default function App() {
           <div className="space-y-6">
             <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
                 <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
-                {/* ТЕПЕРЬ ТУТ 1 КОЛОНКА НА МОБИЛЬНОМ, 2 НА КОМПЬЮТЕРЕ */}
+                
+                {/* ИМЯ ОРГАНИЗАТОРА - НОВОЕ ПОЛЕ */}
+                <div className="mb-4">
+                    <Input label="Имя организатора" placeholder="Ваше имя" value={formData.organizerName} onChange={e => setFormData({...formData, organizerName: e.target.value})} />
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} />
                     <Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} />
