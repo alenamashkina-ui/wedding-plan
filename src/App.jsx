@@ -189,14 +189,16 @@ const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
     style={style}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md active:scale-[0.99]' : ''}`}
+    // УБРАЛ active:scale-[0.99] - это мешало скроллу
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}
   >
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = 'primary', className = "", ...props }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-medium transform active:scale-95 flex items-center justify-center gap-2 select-none";
+  // УБРАЛ transform active:scale-95 - это тоже могло мешать
+  const baseStyle = "px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 select-none transition-colors";
   const variants = {
     primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20`,
     secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
@@ -347,6 +349,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
+           {/* КНОПКА ТЕПЕРЬ PRIMARY */}
            <Button variant="primary" onClick={addTask} className="flex-1 md:flex-none">
             <Plus size={18} /> Добавить
           </Button>
@@ -540,6 +543,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
       </div>
 
       <div className="flex flex-row items-center gap-2 mt-6 print:hidden">
+          {/* КНОПКА ТЕПЕРЬ PRIMARY */}
           <Button onClick={addExpense} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
           <DownloadMenu onSelect={handleExport} />
       </div>
@@ -818,10 +822,7 @@ export default function App() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // ПРОКРУТКА НАВЕРХ (ПРОСТОЙ СПОСОБ)
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view, activeTab]);
+  // УБРАЛ ВСЮ ЛОГИКУ СКРОЛЛА - ТЕПЕРЬ ОН ПОЛНОСТЬЮ НАТИВНЫЙ
 
   const handleCreateProject = () => {
     const creationDate = new Date();
@@ -890,7 +891,7 @@ export default function App() {
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
         <div className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
@@ -910,7 +911,7 @@ export default function App() {
               <div 
                 key={p.id} 
                 onClick={() => { setCurrentProject(p); setView('project'); setActiveTab('overview'); }}
-                className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden active:scale-[0.98]"
+                className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Heart size={64} className="text-[#936142] fill-current"/>
@@ -944,8 +945,8 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
-        <Card className="w-full max-w-2xl p-8 md:p-12">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
+        <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
                 <ChevronLeft size={24}/>
@@ -1010,7 +1011,7 @@ export default function App() {
     const daysLeft = getDaysUntil(currentProject.date);
 
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat]">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
          {/* --- HEADER --- */}
          <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EBE5E0] print:hidden">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -1061,7 +1062,7 @@ export default function App() {
          </nav>
 
          {/* --- MAIN CONTENT --- */}
-         <main className="max-w-7xl mx-auto p-4 md:p-12 pb-32 print:p-0">
+         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-32 print:p-0">
             
             {activeTab === 'overview' && (
                 <div className="space-y-6 md:space-y-8">
