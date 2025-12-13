@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
@@ -161,6 +161,32 @@ const downloadCSV = (data, filename) => {
 
 // --- COMPONENTS ---
 
+// New Component: Textarea that grows with content
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight = "28px" }) => {
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset height to shrink if text was deleted
+      textareaRef.current.style.height = minHeight;
+      // Set height to scrollHeight to expand
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value, minHeight]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className={`${className} overflow-hidden resize-none block`}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={1}
+      style={{ minHeight: minHeight }}
+    />
+  );
+};
+
 const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
@@ -198,7 +224,7 @@ const DownloadMenu = ({ onSelect }) => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden animate-fadeIn">
+          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden">
             <button onClick={() => { onSelect('excel'); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors">
               <div className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center">
                 <FileSpreadsheet size={14} />
@@ -321,7 +347,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-32 md:pb-0">
+    <div className="space-y-6 pb-32 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
@@ -350,13 +376,10 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
                     />
                 </div>
                 <div className="flex-1 min-w-0">
-                  {/* Заменили input на textarea для переноса строк */}
-                  <textarea
-                    rows={1}
-                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none resize-y min-h-[28px] overflow-hidden ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
+                  <AutoResizeTextarea
+                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
                     value={task.text}
                     onChange={(e) => updateTask(task.id, 'text', e.target.value)}
-                    style={{ fieldSizing: 'content' }} // Новое свойство для авто-высоты
                   />
                 </div>
               </div>
@@ -421,7 +444,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn pb-32 md:pb-0">
+    <div className="pb-32 md:pb-0">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:hidden">
         <Card className="p-4 md:p-6 text-center">
           <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">План</p>
@@ -468,13 +491,11 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
                   {expenses.map((item, idx) => (
                       <tr key={idx} className="hover:bg-[#F9F7F5]/50 group print:break-inside-avoid">
                       <td className="p-2 md:p-4 align-top">
-                          {/* Заменили input на textarea для переноса строк */}
-                          <textarea
-                            rows={1} 
-                            className="w-full bg-transparent outline-none font-medium text-[#414942] resize-y min-h-[24px]"
+                          <AutoResizeTextarea
+                            className="w-full bg-transparent outline-none font-medium text-[#414942]"
                             value={item.name} 
-                            onChange={(e) => updateExpense(idx, 'name', e.target.value)} 
-                            style={{ fieldSizing: 'content' }}
+                            onChange={(e) => updateExpense(idx, 'name', e.target.value)}
+                            minHeight="24px"
                           />
                       </td>
                       <td className="p-2 md:p-4 align-top">
@@ -502,11 +523,12 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
                           {formatCurrency(item.fact - item.paid)}
                       </td>
                       <td className="p-2 md:p-4 align-top">
-                          <textarea 
-                            className="w-full bg-transparent outline-none text-xs text-[#AC8A69] placeholder-[#CCBBA9] resize-y min-h-[40px] leading-tight"
+                          <AutoResizeTextarea
+                            className="w-full bg-transparent outline-none text-xs text-[#AC8A69] placeholder-[#CCBBA9]"
                             placeholder="..."
                             value={item.note || ''} 
                             onChange={(e) => updateExpense(idx, 'note', e.target.value)} 
+                            minHeight="40px"
                           />
                       </td>
                       <td className="p-2 md:p-4 align-top print:hidden">
@@ -558,7 +580,7 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
   };
 
   return (
-      <div className="animate-fadeIn pb-32 md:pb-0">
+      <div className="pb-32 md:pb-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
               <div className="flex items-baseline gap-4">
                   <h2 className="text-2xl font-serif text-[#414942]">Список гостей</h2>
@@ -679,7 +701,7 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
                           </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-[#F9F7F5]">
-                            <input 
+                            <AutoResizeTextarea
                                 className="w-full text-sm text-[#414942] italic bg-transparent outline-none"
                                 placeholder="Заметки к гостю..."
                                 value={guest.comment}
@@ -723,7 +745,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn max-w-2xl mx-auto pb-32 md:pb-0">
+    <div className="max-w-2xl mx-auto pb-32 md:pb-0">
       <div className="flex justify-end mb-4 print:hidden">
           <DownloadMenu onSelect={handleExport} />
       </div>
@@ -772,7 +794,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
 };
 
 const NotesView = ({ notes, updateProject }) => (
-  <div className="h-full flex flex-col animate-fadeIn pb-32 md:pb-0">
+  <div className="h-full flex flex-col pb-32 md:pb-0">
       <textarea 
           className="flex-1 w-full bg-white p-8 rounded-2xl shadow-sm border border-[#EBE5E0] text-[#414942] leading-relaxed resize-none focus:ring-2 focus:ring-[#936142]/10 outline-none min-h-[50vh] print:shadow-none print:border-none print:p-0"
           placeholder="Место для важных мыслей, черновиков клятв и идей..."
@@ -927,7 +949,7 @@ export default function App() {
   if (view === 'create') {
     return (
       <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
-        <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
+        <Card className="w-full max-w-2xl p-8 md:p-12">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
                 <ChevronLeft size={24}/>
@@ -1043,7 +1065,7 @@ export default function App() {
          </nav>
 
          {/* --- MAIN CONTENT --- */}
-         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-32 print:p-0">
+         <main className="max-w-7xl mx-auto p-4 md:p-12 pb-32 print:p-0">
             
             {activeTab === 'overview' && (
                 <div className="space-y-6 md:space-y-8">
