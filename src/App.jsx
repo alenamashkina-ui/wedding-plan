@@ -167,9 +167,9 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight
 
   useEffect(() => {
     if (textareaRef.current) {
-      // Reset height to shrink if text was deleted
+      // Сбрасываем высоту чтобы пересчитать корректно при удалении текста
       textareaRef.current.style.height = minHeight;
-      // Set height to scrollHeight to expand
+      // Устанавливаем высоту по контенту
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [value, minHeight]);
@@ -191,14 +191,14 @@ const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
     style={style}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all active:scale-[0.99]' : ''}`}
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md active:scale-[0.99]' : ''}`}
   >
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = 'primary', className = "", ...props }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-medium transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 select-none";
+  const baseStyle = "px-6 py-3 rounded-xl font-medium transform active:scale-95 flex items-center justify-center gap-2 select-none";
   const variants = {
     primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20`,
     secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
@@ -254,7 +254,7 @@ const Input = ({ label, ...props }) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
     <input 
-      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 transition-all outline-none"
+      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none"
       {...props}
     />
   </div>
