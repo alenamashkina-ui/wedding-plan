@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
@@ -131,6 +131,7 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('ru-RU', options);
 };
 
+// Helper for input date value (YYYY-MM-DD)
 const toInputDate = (dateStr) => {
   if (!dateStr) return '';
   return new Date(dateStr).toISOString().split('T')[0];
@@ -160,17 +161,44 @@ const downloadCSV = (data, filename) => {
 
 // --- COMPONENTS ---
 
-const Card = ({ children, className = "", onClick }) => (
+// New Component: Textarea that grows with content
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight = "28px" }) => {
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = minHeight;
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value, minHeight]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className={`${className} overflow-hidden resize-none block`}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={1}
+      style={{ minHeight: minHeight }}
+    />
+  );
+};
+
+const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all active:scale-[0.99]' : ''}`}
+    style={style}
+    // УБРАЛ active:scale-[0.99] - это мешало скроллу
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}
   >
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = 'primary', className = "", ...props }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-medium transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 select-none";
+  // УБРАЛ transform active:scale-95 - это тоже могло мешать
+  const baseStyle = "px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 select-none transition-colors";
   const variants = {
     primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20`,
     secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
@@ -196,7 +224,7 @@ const DownloadMenu = ({ onSelect }) => {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden animate-fadeIn">
+          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden">
             <button onClick={() => { onSelect('excel'); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors">
               <div className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center">
                 <FileSpreadsheet size={14} />
@@ -226,12 +254,13 @@ const Input = ({ label, ...props }) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
     <input 
-      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 transition-all outline-none"
+      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none"
       {...props}
     />
   </div>
 );
 
+// Money Input Component
 const MoneyInput = ({ value, onChange, className }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -270,39 +299,26 @@ const Checkbox = ({ checked, onChange }) => (
   </div>
 );
 
-const AutoResizingTextarea = ({ value, onChange, className, placeholder, isStrikeThrough }) => {
-  return (
-    <textarea
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={1}
-      className={`w-full bg-transparent outline-none resize-none overflow-hidden min-h-[1.5em] ${className} ${isStrikeThrough ? 'line-through text-[#CCBBA9]' : ''}`}
-      style={{ fieldSizing: 'content' }} // Modern CSS for auto-sizing
-      onInput={(e) => {
-        // Fallback for browsers not supporting field-sizing
-        e.target.style.height = 'auto';
-        e.target.style.height = e.target.scrollHeight + 'px';
-      }}
-    />
-  );
-};
-
 // --- SUB-VIEWS ---
 
 const TasksView = ({ tasks, updateProject, formatDate }) => {
-  // Sort: Not done first (by deadline), then Done
-  const sortedTasks = [...tasks].sort((a, b) => {
+  const sortTasks = (taskList) => [...taskList].sort((a, b) => {
     if (a.done === b.done) {
-      return new Date(a.deadline) - new Date(b.deadline);
+        return new Date(a.deadline) - new Date(b.deadline);
     }
     return a.done ? 1 : -1;
   });
 
   const updateTask = (id, field, value) => {
-    const newTasks = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
-    updateProject('tasks', newTasks);
+    const updatedList = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
+    if (field === 'done') {
+        updateProject('tasks', sortTasks(updatedList));
+    } else {
+        updateProject('tasks', updatedList);
+    }
   };
+
+  const handleBlurSort = () => updateProject('tasks', sortTasks(tasks));
 
   const addTask = () => {
     const newTask = {
@@ -311,7 +327,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
       deadline: new Date().toISOString(),
       done: false
     };
-    updateProject('tasks', [...tasks, newTask]);
+    updateProject('tasks', sortTasks([...tasks, newTask]));
   };
 
   const deleteTask = (id) => updateProject('tasks', tasks.filter(t => t.id !== id));
@@ -322,18 +338,18 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
     } else {
       const csvData = [
         ["Задача", "Дедлайн", "Статус"],
-        ...sortedTasks.map(t => [t.text, formatDate(t.deadline), t.done ? "Выполнено" : "В работе"])
+        ...tasks.map(t => [t.text, formatDate(t.deadline), t.done ? "Выполнено" : "В работе"])
       ];
       downloadCSV(csvData, "tasks.csv");
     }
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-20 md:pb-0">
+    <div className="space-y-6 pb-32 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
-           {/* Brown button as requested */}
+           {/* КНОПКА ТЕПЕРЬ PRIMARY */}
            <Button variant="primary" onClick={addTask} className="flex-1 md:flex-none">
             <Plus size={18} /> Добавить
           </Button>
@@ -343,23 +359,25 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
 
       <div className="hidden print:block mb-8">
         <h1 className="text-3xl font-serif text-[#414942] mb-2">Список задач</h1>
+        <p className="text-[#AC8A69]">Wed.Control</p>
       </div>
 
       <div className="grid gap-4">
-        {sortedTasks.map((task) => {
+        {tasks.map((task) => {
            const isOverdue = new Date(task.deadline) < new Date() && !task.done;
            return (
-            <div key={task.id} className={`group flex flex-col md:flex-row md:items-start p-4 bg-white rounded-xl border transition-all hover:shadow-md gap-4 print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:p-2 ${task.done ? 'opacity-50 border-transparent bg-gray-50' : 'border-[#EBE5E0]'}`}>
-              <div className="flex items-start flex-1 gap-4 pt-1">
-                <Checkbox 
-                  checked={task.done} 
-                  onChange={(checked) => updateTask(task.id, 'done', checked)} 
-                />
-                <div className="flex-1">
-                  <AutoResizingTextarea
-                    className={`font-medium text-base md:text-lg text-[#414942]`}
+            <div key={task.id} className={`group flex flex-col md:flex-row md:items-start p-4 bg-white rounded-xl border transition-all hover:shadow-md gap-4 print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:p-2 ${task.done ? 'opacity-50 border-transparent' : 'border-[#EBE5E0]'}`}>
+              <div className="flex items-start flex-1 gap-4">
+                <div className="pt-1">
+                    <Checkbox 
+                    checked={task.done} 
+                    onChange={(checked) => updateTask(task.id, 'done', checked)} 
+                    />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <AutoResizeTextarea
+                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
                     value={task.text}
-                    isStrikeThrough={task.done}
                     onChange={(e) => updateTask(task.id, 'text', e.target.value)}
                   />
                 </div>
@@ -367,12 +385,13 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
               
               <div className="flex items-center justify-between md:justify-end gap-4 pl-10 md:pl-0 w-full md:w-auto mt-2 md:mt-0">
                 <div className="flex items-center gap-2 text-[#AC8A69] bg-[#F9F7F5] px-3 py-1.5 rounded-lg w-full md:w-[160px] print:bg-transparent print:p-0 print:w-auto">
-                   <CalendarDays size={14} className="print:hidden flex-shrink-0"/>
+                   <CalendarDays size={14} className="print:hidden"/>
                    <input 
                       type="date"
                       className={`bg-transparent outline-none text-sm w-full cursor-pointer print:text-right ${isOverdue ? 'text-red-400 font-bold' : ''}`}
                       value={toInputDate(task.deadline)}
                       onChange={(e) => updateTask(task.id, 'deadline', e.target.value ? new Date(e.target.value).toISOString() : task.deadline)}
+                      onBlur={handleBlurSort}
                    />
                 </div>
                 <button onClick={() => deleteTask(task.id)} className="text-[#CCBBA9] hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-2 print:hidden">
@@ -424,7 +443,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn pb-20 md:pb-0">
+    <div className="pb-32 md:pb-0">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:hidden">
         <Card className="p-4 md:p-6 text-center">
           <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">План</p>
@@ -438,10 +457,10 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
            <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">Внесено</p>
            <p className="text-lg md:text-2xl font-medium text-[#936142]">{formatCurrency(totals.paid)}</p>
         </Card>
-        <Card className="p-4 md:p-6 text-center bg-[#414942] text-white">
-           <p className="text-white/60 text-[10px] md:text-xs uppercase tracking-widest mb-2">Остаток</p>
+        <div className="bg-[#414942] rounded-2xl shadow-sm border border-[#EBE5E0] p-4 md:p-6 text-center">
+           <p className="text-[10px] md:text-xs uppercase tracking-widest mb-2 text-white/60">Остаток</p>
            <p className="text-lg md:text-2xl font-medium text-white">{formatCurrency(totals.fact - totals.paid)}</p>
-        </Card>
+        </div>
       </div>
 
       <div className="hidden print:block mb-8">
@@ -454,74 +473,64 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-[#EBE5E0] overflow-hidden print:shadow-none print:border-none">
-          {/* Removed overflow-x-auto to allow wrapping */}
-          <div className="w-full">
-              <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px] print:min-w-0">
                   <thead>
                   <tr className="bg-[#F9F7F5] text-[#936142] text-xs uppercase tracking-wider print:bg-transparent print:border-b print:border-[#414942]">
-                      <th className="p-4 font-semibold">Статья</th>
-                      <th className="p-4 font-semibold w-24 md:w-32">План</th>
-                      <th className="p-4 font-semibold w-24 md:w-32">Факт</th>
-                      <th className="p-4 font-semibold w-24 md:w-32 hidden md:table-cell">Внесено</th>
-                      <th className="p-4 font-semibold w-24 md:w-32 hidden md:table-cell">Остаток</th>
-                      <th className="p-4 font-semibold w-48 hidden md:table-cell">Комментарий</th>
-                      <th className="p-4 font-semibold w-10 print:hidden"></th>
+                      <th className="p-2 md:p-4 font-semibold">Статья</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">План</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Факт</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Внесено</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Остаток</th>
+                      <th className="p-2 md:p-4 font-semibold w-48">Комментарий</th>
+                      <th className="p-2 md:p-4 font-semibold w-10 print:hidden"></th>
                   </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EBE5E0] print:divide-[#CCBBA9]">
                   {expenses.map((item, idx) => (
                       <tr key={idx} className="hover:bg-[#F9F7F5]/50 group print:break-inside-avoid">
-                      <td className="p-4 align-top">
-                          <AutoResizingTextarea
-                            className="w-full bg-transparent font-medium text-[#414942]"
+                      <td className="p-2 md:p-4 align-top">
+                          <AutoResizeTextarea
+                            className="w-full bg-transparent outline-none font-medium text-[#414942]"
                             value={item.name} 
-                            onChange={(e) => updateExpense(idx, 'name', e.target.value)} 
+                            onChange={(e) => updateExpense(idx, 'name', e.target.value)}
+                            minHeight="24px"
                           />
-                          {/* Mobile only fields */}
-                          <div className="md:hidden mt-2 space-y-2">
-                             <div className="text-xs text-[#AC8A69]">Внесено: <MoneyInput value={item.paid} onChange={(val) => updateExpense(idx, 'paid', val)} className="w-20 border-b border-[#AC8A69]/20" /></div>
-                             <div className="text-xs text-[#AC8A69]">Остаток: {formatCurrency(item.fact - item.paid)}</div>
-                             <AutoResizingTextarea 
-                                className="w-full text-xs text-[#AC8A69] border-b border-[#EBE5E0] pb-1 placeholder-[#CCBBA9]" 
-                                placeholder="Комментарий..." 
-                                value={item.note || ''} 
-                                onChange={(e) => updateExpense(idx, 'note', e.target.value)} 
-                             />
-                          </div>
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.plan} 
                             onChange={(val) => updateExpense(idx, 'plan', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.fact} 
                             onChange={(val) => updateExpense(idx, 'fact', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top hidden md:table-cell">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.paid} 
                             onChange={(val) => updateExpense(idx, 'paid', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top text-[#AC8A69] hidden md:table-cell">
+                      <td className="p-2 md:p-4 align-top text-[#AC8A69]">
                           {formatCurrency(item.fact - item.paid)}
                       </td>
-                      <td className="p-4 align-top hidden md:table-cell">
-                          <AutoResizingTextarea
-                            className="w-full bg-transparent text-xs text-[#AC8A69] placeholder-[#CCBBA9]"
+                      <td className="p-2 md:p-4 align-top">
+                          <AutoResizeTextarea
+                            className="w-full bg-transparent outline-none text-xs text-[#AC8A69] placeholder-[#CCBBA9]"
                             placeholder="..."
                             value={item.note || ''} 
                             onChange={(e) => updateExpense(idx, 'note', e.target.value)} 
+                            minHeight="40px"
                           />
                       </td>
-                      <td className="p-4 align-top print:hidden">
+                      <td className="p-2 md:p-4 align-top print:hidden">
                           <button onClick={() => removeExpense(idx)} className="text-red-300 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Trash2 size={16} />
                           </button>
@@ -533,9 +542,9 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
           </div>
       </div>
 
-      <div className="flex flex-row gap-4 mt-6 print:hidden items-center">
-          {/* Brown button */}
-          <Button onClick={addExpense} variant="primary"><Plus size={18}/> Добавить статью</Button>
+      <div className="flex flex-row items-center gap-2 mt-6 print:hidden">
+          {/* КНОПКА ТЕПЕРЬ PRIMARY */}
+          <Button onClick={addExpense} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
           <DownloadMenu onSelect={handleExport} />
       </div>
     </div>
@@ -571,14 +580,14 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
   };
 
   return (
-      <div className="animate-fadeIn pb-20 md:pb-0">
+      <div className="pb-32 md:pb-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
               <div className="flex items-baseline gap-4">
                   <h2 className="text-2xl font-serif text-[#414942]">Список гостей</h2>
                   <span className="text-[#AC8A69] font-medium">{guests.length} персон</span>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={addGuest} variant="primary"><Plus size={18}/> Добавить</Button>
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button onClick={addGuest} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить</Button>
                 <DownloadMenu onSelect={handleExport} />
               </div>
           </div>
@@ -586,13 +595,14 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
           <div className="hidden print:block mb-8">
             <h1 className="text-3xl font-serif text-[#414942]">Список гостей</h1>
             <p className="text-[#AC8A69] mb-4">Всего персон: {guests.length}</p>
-            
-            {/* Table specifically for Print/PDF */}
+          </div>
+          
+          {/* ТАБЛИЦА ДЛЯ ПЕЧАТИ (ВИДНА ТОЛЬКО ПРИ window.print) */}
+          <div className="hidden print:block w-full">
             <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                    <tr className="border-b border-[#414942]">
+                    <tr className="border-b-2 border-black">
                         <th className="py-2">ФИО</th>
-                        <th className="py-2">Рассадка</th>
                         <th className="py-2">Стол</th>
                         <th className="py-2">Еда/Напитки</th>
                         <th className="py-2">Трансфер</th>
@@ -601,23 +611,25 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
                 </thead>
                 <tbody>
                     {guests.map((g, i) => (
-                        <tr key={i} className="border-b border-[#EBE5E0] break-inside-avoid">
-                            <td className="py-2 pr-2">{g.name}</td>
-                            <td className="py-2 pr-2">{g.seatingName}</td>
+                        <tr key={g.id} className="border-b border-gray-300 break-inside-avoid">
+                            <td className="py-2 pr-2">
+                                <div className="font-bold">{g.name}</div>
+                                <div className="text-xs text-gray-500">{g.seatingName}</div>
+                            </td>
                             <td className="py-2 pr-2">{g.table}</td>
                             <td className="py-2 pr-2">
                                 {g.food && <div>{g.food}</div>}
                                 {g.drinks && <div>{g.drinks}</div>}
                             </td>
                             <td className="py-2 pr-2">{g.transfer ? 'Да' : ''}</td>
-                            <td className="py-2">{g.comment}</td>
+                            <td className="py-2 text-xs italic">{g.comment}</td>
                         </tr>
                     ))}
                 </tbody>
             </table>
           </div>
 
-          {/* Cards for Screen View */}
+          {/* ОБЫЧНЫЙ ВИД (СКРЫТ ПРИ ПЕЧАТИ) */}
           <div className="grid gap-4 print:hidden">
               {guests.map((guest, idx) => (
                   <Card key={guest.id} className="p-6 transition-all hover:shadow-md">
@@ -626,7 +638,7 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
                               <span className="w-8 h-8 rounded-full bg-[#CCBBA9]/30 text-[#936142] flex items-center justify-center font-bold text-sm">
                                   {idx + 1}
                               </span>
-                              <button onClick={() => removeGuest(guest.id)} className="md:hidden text-[#CCBBA9] hover:text-red-400 transition-colors">
+                              <button onClick={() => removeGuest(guest.id)} className="md:hidden text-[#CCBBA9] hover:text-red-400 transition-colors print:hidden">
                                   <Trash2 size={18}/>
                               </button>
                           </div>
@@ -682,14 +694,14 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
                               </label>
                           </div>
 
-                          <div className="hidden md:flex md:col-span-1 justify-end pt-4">
+                          <div className="hidden md:flex md:col-span-1 justify-end pt-4 print:hidden">
                               <button onClick={() => removeGuest(guest.id)} className="text-[#CCBBA9] hover:text-red-400 transition-colors">
                                   <Trash2 size={18}/>
                               </button>
                           </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-[#F9F7F5]">
-                            <input 
+                            <AutoResizeTextarea
                                 className="w-full text-sm text-[#414942] italic bg-transparent outline-none"
                                 placeholder="Заметки к гостю..."
                                 value={guest.comment}
@@ -733,7 +745,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn max-w-2xl mx-auto pb-20 md:pb-0">
+    <div className="max-w-2xl mx-auto pb-32 md:pb-0">
       <div className="flex justify-end mb-4 print:hidden">
           <DownloadMenu onSelect={handleExport} />
       </div>
@@ -782,7 +794,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
 };
 
 const NotesView = ({ notes, updateProject }) => (
-  <div className="h-full flex flex-col animate-fadeIn pb-20 md:pb-0">
+  <div className="h-full flex flex-col pb-32 md:pb-0">
       <textarea 
           className="flex-1 w-full bg-white p-8 rounded-2xl shadow-sm border border-[#EBE5E0] text-[#414942] leading-relaxed resize-none focus:ring-2 focus:ring-[#936142]/10 outline-none min-h-[50vh] print:shadow-none print:border-none print:p-0"
           placeholder="Место для важных мыслей, черновиков клятв и идей..."
@@ -794,7 +806,7 @@ const NotesView = ({ notes, updateProject }) => (
 
 // --- MAIN APPLICATION ---
 
-export default function WeddingPlanner() {
+export default function App() {
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('wedding_projects');
     return saved ? JSON.parse(saved) : [];
@@ -810,10 +822,7 @@ export default function WeddingPlanner() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // SCROLL FIX: Scroll to top when view changes
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view, activeTab]);
+  // УБРАЛ ВСЮ ЛОГИКУ СКРОЛЛА - ТЕПЕРЬ ОН ПОЛНОСТЬЮ НАТИВНЫЙ
 
   const handleCreateProject = () => {
     const creationDate = new Date();
@@ -830,6 +839,7 @@ export default function WeddingPlanner() {
       };
     });
 
+    // Conditional Tasks & Expenses
     let projectExpenses = [...INITIAL_EXPENSES];
     
     if (formData.prepLocation === 'hotel') {
@@ -847,6 +857,7 @@ export default function WeddingPlanner() {
 
     projectTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     
+    // Assign IDs to initial timing
     const projectTiming = INITIAL_TIMING.map(t => ({
       ...t,
       id: Math.random().toString(36).substr(2, 9)
@@ -866,7 +877,6 @@ export default function WeddingPlanner() {
     setCurrentProject(newProject);
     setView('project');
     setActiveTab('overview');
-    window.scrollTo(0, 0); // Ensure scroll is at top
   };
 
   const updateProject = useCallback((field, value) => {
@@ -881,10 +891,9 @@ export default function WeddingPlanner() {
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
         <div className="max-w-6xl mx-auto">
-          {/* Header fixed for mobile overlap */}
-          <header className="flex flex-col md:flex-row md:justify-between items-start md:items-center mb-10 md:mb-16 gap-4">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-[#414942] tracking-tight">Wed.Control</h1>
                 <p className="text-[#AC8A69] mt-2">Эстетика планирования</p>
@@ -892,7 +901,7 @@ export default function WeddingPlanner() {
             <Button onClick={() => {
                setFormData(INITIAL_FORM_STATE);
                setView('create');
-            }}>
+            }} className="w-full md:w-auto">
                <Plus size={20}/> Новый проект
             </Button>
           </header>
@@ -902,21 +911,17 @@ export default function WeddingPlanner() {
               <div 
                 key={p.id} 
                 onClick={() => { setCurrentProject(p); setView('project'); setActiveTab('overview'); }}
-                className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden active:scale-[0.98]"
+                className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Heart size={64} className="text-[#936142] fill-current"/>
                 </div>
                 <div className="relative z-10">
                     <p className="text-xs font-bold text-[#AC8A69] uppercase tracking-widest mb-3">{formatDate(p.date)}</p>
-                    {/* Names flex-col on mobile as requested */}
-                    <div className="flex flex-col md:block mb-1">
-                      <h3 className="text-2xl font-serif text-[#414942]">{p.groomName} &</h3>
-                      <h3 className="text-2xl font-serif text-[#414942]">{p.brideName}</h3>
-                    </div>
-                    
+                    <h3 className="text-2xl font-serif text-[#414942] mb-1">{p.groomName} & {p.brideName}</h3>
                     <p className="text-[#CCBBA9] text-sm mb-6">{p.venueName || 'Локация не выбрана'}</p>
-                    
+                    {p.organizerName && <p className="text-[#AC8A69] text-xs font-medium">Org: {p.organizerName}</p>}
+
                     <div className="flex items-center justify-between mt-8 border-t border-[#F9F7F5] pt-4">
                         <span className="text-[#936142] group-hover:translate-x-1 transition-transform">
                             <ArrowRight size={20}/>
@@ -940,7 +945,7 @@ export default function WeddingPlanner() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
         <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
@@ -952,11 +957,16 @@ export default function WeddingPlanner() {
           <div className="space-y-6">
             <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
                 <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
-                <div className="grid grid-cols-2 gap-6">
+                
+                {/* ИМЯ ОРГАНИЗАТОРА - НОВОЕ ПОЛЕ */}
+                <div className="mb-4">
+                    <Input label="Имя организатора" placeholder="Ваше имя" value={formData.organizerName} onChange={e => setFormData({...formData, organizerName: e.target.value})} />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} />
                     <Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} />
                 </div>
-                <Input label="Организатор" placeholder="Имя организатора" value={formData.organizerName} onChange={e => setFormData({...formData, organizerName: e.target.value})} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input label="Дата свадьбы" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
                     <Input label="Гостей" type="number" placeholder="50" value={formData.guestsCount} onChange={e => setFormData({...formData, guestsCount: e.target.value})} />
@@ -1029,10 +1039,8 @@ export default function WeddingPlanner() {
                 </div>
 
                 <div className="text-right">
-                    <p className="font-serif text-[#414942] font-medium text-sm md:text-base leading-tight">
-                        {currentProject.groomName} & {currentProject.brideName}
-                    </p>
-                    {currentProject.organizerName && <p className="text-[10px] text-[#AC8A69]">Орг: {currentProject.organizerName}</p>}
+                    <p className="font-serif text-[#414942] font-medium text-sm md:text-base">{currentProject.groomName} & {currentProject.brideName}</p>
+                    <p className="text-[10px] md:text-xs text-[#AC8A69]">{formatDate(currentProject.date)}</p>
                 </div>
             </div>
             {/* Mobile Nav */}
@@ -1054,7 +1062,7 @@ export default function WeddingPlanner() {
          </nav>
 
          {/* --- MAIN CONTENT --- */}
-         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-24 print:p-0">
+         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-32 print:p-0">
             
             {activeTab === 'overview' && (
                 <div className="space-y-6 md:space-y-8">
@@ -1081,14 +1089,14 @@ export default function WeddingPlanner() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                         <Card className="p-4 md:p-6 flex flex-col justify-between h-32 md:h-40" onClick={() => setActiveTab('tasks')}>
-                            <CheckSquare className="text-[#936142] mb-2 md:mb-4" size={24}/>
+                            <CheckSquare className="text-[#936142] mb-2 md:mb-4" size={24} md:size={32}/>
                             <div>
                                 <p className="text-2xl md:text-3xl font-bold text-[#414942]">{currentProject.tasks.filter(t => !t.done).length}</p>
                                 <p className="text-[10px] md:text-xs text-[#AC8A69] uppercase mt-1">Активных задач</p>
                             </div>
                         </Card>
                          <Card className="p-4 md:p-6 flex flex-col justify-between h-32 md:h-40" onClick={() => setActiveTab('budget')}>
-                            <DollarSign className="text-[#936142] mb-2 md:mb-4" size={24}/>
+                            <DollarSign className="text-[#936142] mb-2 md:mb-4" size={24} md:size={32}/>
                             <div>
                                 <p className="text-lg md:text-xl font-bold text-[#414942]">
                                   {Math.round((currentProject.expenses.reduce((a,b)=>a+Number(b.paid),0) / (currentProject.expenses.reduce((a,b)=>a+Number(b.fact),0) || 1)) * 100)}%
@@ -1097,14 +1105,14 @@ export default function WeddingPlanner() {
                             </div>
                         </Card>
                          <Card className="p-4 md:p-6 flex flex-col justify-between h-32 md:h-40" onClick={() => setActiveTab('guests')}>
-                            <Users className="text-[#936142] mb-2 md:mb-4" size={24}/>
+                            <Users className="text-[#936142] mb-2 md:mb-4" size={24} md:size={32}/>
                             <div>
                                 <p className="text-2xl md:text-3xl font-bold text-[#414942]">{currentProject.guests.length}</p>
                                 <p className="text-[10px] md:text-xs text-[#AC8A69] uppercase mt-1">Гостей</p>
                             </div>
                         </Card>
                          <Card className="p-4 md:p-6 flex flex-col justify-between h-32 md:h-40" onClick={() => setActiveTab('timing')}>
-                            <Clock className="text-[#936142] mb-2 md:mb-4" size={24}/>
+                            <Clock className="text-[#936142] mb-2 md:mb-4" size={24} md:size={32}/>
                             <div>
                                 <p className="text-lg md:text-xl font-bold text-[#414942]">{currentProject.timing[0]?.time || '09:00'}</p>
                                 <p className="text-[10px] md:text-xs text-[#AC8A69] uppercase mt-1">Начало дня</p>
@@ -1129,7 +1137,7 @@ export default function WeddingPlanner() {
                                             <p className="text-xs md:text-sm text-[#AC8A69]">{formatDate(task.deadline)}</p>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" onClick={() => setActiveTab('tasks')} className="p-2"><ArrowRight size={18} /></Button>
+                                    <Button variant="ghost" onClick={() => setActiveTab('tasks')} className="p-2"><ArrowRight size={18} md:size={20}/></Button>
                                 </div>
                             ))}
                         </div>
