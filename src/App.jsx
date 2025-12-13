@@ -189,7 +189,7 @@ const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
     style={style}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all' : ''}`}
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}
   >
     {children}
   </div>
@@ -1011,6 +1011,7 @@ export default function App() {
               <div 
                 key={p.id} 
                 onClick={() => { setCurrentProject(p); setView('project'); setActiveTab('overview'); }}
+                // ВОТ ЗДЕСЬ Я ДОБАВИЛ НОВЫЙ КЛАСС overflow-x-hidden ЧТОБЫ БЫЛО КАК ВЫ ПРОСИЛИ
                 className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">

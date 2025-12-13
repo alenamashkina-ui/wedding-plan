@@ -4,8 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #F9F7F5;
+html, body {
   margin: 0;
+  padding: 0;
+  height: auto;
+  min-height: 100%;
+  overflow-x: visible; /* Важно: разрешаем браузеру скроллить */
+  overflow-y: visible;
+  background-color: #F9F7F5;
   font-family: 'Montserrat', sans-serif;
+  -webkit-overflow-scrolling: touch; /* Включаем инерцию на iOS */
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
