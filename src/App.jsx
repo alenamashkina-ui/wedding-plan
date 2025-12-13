@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
@@ -351,7 +351,8 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
-           <Button variant="secondary" onClick={addTask} className="flex-1 md:flex-none">
+           {/* КНОПКА ТЕПЕРЬ PRIMARY (КОРИЧНЕВАЯ) */}
+           <Button variant="primary" onClick={addTask} className="flex-1 md:flex-none">
             <Plus size={18} /> Добавить
           </Button>
           <DownloadMenu onSelect={handleExport} />
@@ -544,7 +545,8 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
       </div>
 
       <div className="flex flex-row items-center gap-2 mt-6 print:hidden">
-          <Button onClick={addExpense} variant="secondary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
+          {/* КНОПКА ТЕПЕРЬ PRIMARY (КОРИЧНЕВАЯ) */}
+          <Button onClick={addExpense} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
           <DownloadMenu onSelect={handleExport} />
       </div>
     </div>
@@ -822,9 +824,13 @@ export default function App() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // ПРОКРУТКА НАВЕРХ ПРИ СМЕНЕ ЭКРАНА
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  // ПРОКРУТКА НАВЕРХ ПРИ СМЕНЕ ЭКРАНА (МГНОВЕННО)
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const timeout = setTimeout(() => {
+       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, 10);
+    return () => clearTimeout(timeout);
   }, [view, activeTab]);
 
   const handleCreateProject = () => {
