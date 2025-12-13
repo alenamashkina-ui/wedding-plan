@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
@@ -167,7 +167,9 @@ const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight
 
   useEffect(() => {
     if (textareaRef.current) {
+      // Сбрасываем высоту чтобы пересчитать корректно при удалении текста
       textareaRef.current.style.height = minHeight;
+      // Устанавливаем высоту по контенту
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [value, minHeight]);
@@ -300,6 +302,7 @@ const Checkbox = ({ checked, onChange }) => (
 // --- SUB-VIEWS ---
 
 const TasksView = ({ tasks, updateProject, formatDate }) => {
+  // Сортировка: Сначала по статусу (невыполненные выше), потом по дате
   const sortTasks = (taskList) => [...taskList].sort((a, b) => {
     if (a.done === b.done) {
         return new Date(a.deadline) - new Date(b.deadline);
@@ -308,6 +311,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
   });
 
   const updateTask = (id, field, value) => {
+    // При обновлении статуса сразу сортируем
     const updatedList = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
     if (field === 'done') {
         updateProject('tasks', sortTasks(updatedList));
@@ -343,7 +347,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
@@ -441,7 +445,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div>
+    <div className="pb-32 md:pb-0">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:hidden">
         <Card className="p-4 md:p-6 text-center">
           <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">План</p>
@@ -578,7 +582,7 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
   };
 
   return (
-      <div>
+      <div className="pb-32 md:pb-0">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
               <div className="flex items-baseline gap-4">
                   <h2 className="text-2xl font-serif text-[#414942]">Список гостей</h2>
@@ -743,7 +747,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto pb-32 md:pb-0">
       <div className="flex justify-end mb-4 print:hidden">
           <DownloadMenu onSelect={handleExport} />
       </div>
@@ -792,7 +796,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
 };
 
 const NotesView = ({ notes, updateProject }) => (
-  <div className="h-full flex flex-col">
+  <div className="h-full flex flex-col pb-32 md:pb-0">
       <textarea 
           className="flex-1 w-full bg-white p-8 rounded-2xl shadow-sm border border-[#EBE5E0] text-[#414942] leading-relaxed resize-none focus:ring-2 focus:ring-[#936142]/10 outline-none min-h-[50vh] print:shadow-none print:border-none print:p-0"
           placeholder="Место для важных мыслей, черновиков клятв и идей..."
@@ -820,6 +824,11 @@ export default function App() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
+  // ПРОКРУТКА НАВЕРХ (ПРОСТОЙ СПОСОБ)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view, activeTab]);
+
   const handleCreateProject = () => {
     const creationDate = new Date();
     const weddingDate = new Date(formData.date);
@@ -835,6 +844,7 @@ export default function App() {
       };
     });
 
+    // Conditional Tasks & Expenses
     let projectExpenses = [...INITIAL_EXPENSES];
     
     if (formData.prepLocation === 'hotel') {
@@ -852,6 +862,7 @@ export default function App() {
 
     projectTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     
+    // Assign IDs to initial timing
     const projectTiming = INITIAL_TIMING.map(t => ({
       ...t,
       id: Math.random().toString(36).substr(2, 9)
@@ -885,7 +896,7 @@ export default function App() {
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-full w-full bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
@@ -939,7 +950,7 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-full w-full bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
         <Card className="w-full max-w-2xl p-8 md:p-12">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
@@ -1005,7 +1016,7 @@ export default function App() {
     const daysLeft = getDaysUntil(currentProject.date);
 
     return (
-      <div className="min-h-full w-full bg-[#F9F7F5] font-[Montserrat]" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat]" style={{ WebkitOverflowScrolling: 'touch' }}>
          {/* --- HEADER --- */}
          <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EBE5E0] print:hidden">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
