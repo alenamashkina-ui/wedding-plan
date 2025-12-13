@@ -309,7 +309,7 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-20 md:pb-0">
+    <div className="space-y-6 animate-fadeIn pb-32 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
@@ -404,7 +404,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn pb-20 md:pb-0">
+    <div className="animate-fadeIn pb-32 md:pb-0">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:hidden">
         <Card className="p-4 md:p-6 text-center">
           <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">План</p>
@@ -418,8 +418,6 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
            <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">Внесено</p>
            <p className="text-lg md:text-2xl font-medium text-[#936142]">{formatCurrency(totals.paid)}</p>
         </Card>
-        
-        {/* ВОТ ЗДЕСЬ Я ЗАМЕНИЛ CARD НА ОБЫЧНЫЙ DIV С БЕЛЫМ ТЕКСТОМ */}
         <div className="bg-[#414942] rounded-2xl shadow-sm border border-[#EBE5E0] p-4 md:p-6 text-center">
            <p className="text-[10px] md:text-xs uppercase tracking-widest mb-2 text-white/60">Остаток</p>
            <p className="text-lg md:text-2xl font-medium text-white">{formatCurrency(totals.fact - totals.paid)}</p>
@@ -440,50 +438,50 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
               <table className="w-full text-left border-collapse min-w-[800px] print:min-w-0">
                   <thead>
                   <tr className="bg-[#F9F7F5] text-[#936142] text-xs uppercase tracking-wider print:bg-transparent print:border-b print:border-[#414942]">
-                      <th className="p-4 font-semibold">Статья</th>
-                      <th className="p-4 font-semibold w-32">План</th>
-                      <th className="p-4 font-semibold w-32">Факт</th>
-                      <th className="p-4 font-semibold w-32">Внесено</th>
-                      <th className="p-4 font-semibold w-32">Остаток</th>
-                      <th className="p-4 font-semibold w-48">Комментарий</th>
-                      <th className="p-4 font-semibold w-10 print:hidden"></th>
+                      <th className="p-2 md:p-4 font-semibold">Статья</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">План</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Факт</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Внесено</th>
+                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Остаток</th>
+                      <th className="p-2 md:p-4 font-semibold w-48">Комментарий</th>
+                      <th className="p-2 md:p-4 font-semibold w-10 print:hidden"></th>
                   </tr>
                   </thead>
                   <tbody className="divide-y divide-[#EBE5E0] print:divide-[#CCBBA9]">
                   {expenses.map((item, idx) => (
                       <tr key={idx} className="hover:bg-[#F9F7F5]/50 group print:break-inside-avoid">
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <input 
                             className="w-full bg-transparent outline-none font-medium text-[#414942]"
                             value={item.name} 
                             onChange={(e) => updateExpense(idx, 'name', e.target.value)} 
                           />
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.plan} 
                             onChange={(val) => updateExpense(idx, 'plan', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.fact} 
                             onChange={(val) => updateExpense(idx, 'fact', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <MoneyInput 
                             value={item.paid} 
                             onChange={(val) => updateExpense(idx, 'paid', val)}
                             className="w-full text-[#414942]" 
                           />
                       </td>
-                      <td className="p-4 align-top text-[#AC8A69]">
+                      <td className="p-2 md:p-4 align-top text-[#AC8A69]">
                           {formatCurrency(item.fact - item.paid)}
                       </td>
-                      <td className="p-4 align-top">
+                      <td className="p-2 md:p-4 align-top">
                           <textarea 
                             className="w-full bg-transparent outline-none text-xs text-[#AC8A69] placeholder-[#CCBBA9] resize-y min-h-[40px] leading-tight"
                             placeholder="..."
@@ -491,7 +489,7 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
                             onChange={(e) => updateExpense(idx, 'note', e.target.value)} 
                           />
                       </td>
-                      <td className="p-4 align-top print:hidden">
+                      <td className="p-2 md:p-4 align-top print:hidden">
                           <button onClick={() => removeExpense(idx)} className="text-red-300 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Trash2 size={16} />
                           </button>
@@ -503,8 +501,8 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
           </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mt-6 print:hidden">
-          <Button onClick={addExpense} variant="secondary"><Plus size={18}/> Добавить статью</Button>
+      <div className="flex flex-row items-center gap-2 mt-6 print:hidden">
+          <Button onClick={addExpense} variant="secondary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
           <DownloadMenu onSelect={handleExport} />
       </div>
     </div>
@@ -540,14 +538,14 @@ const GuestsView = ({ guests, updateProject, downloadCSV }) => {
   };
 
   return (
-      <div className="animate-fadeIn pb-20 md:pb-0">
-          <div className="flex justify-between items-center mb-6 print:hidden">
+      <div className="animate-fadeIn pb-32 md:pb-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
               <div className="flex items-baseline gap-4">
                   <h2 className="text-2xl font-serif text-[#414942]">Список гостей</h2>
                   <span className="text-[#AC8A69] font-medium">{guests.length} персон</span>
               </div>
-              <div className="flex gap-2">
-                <Button onClick={addGuest} variant="primary"><Plus size={18}/> Добавить</Button>
+              <div className="flex gap-2 w-full md:w-auto">
+                <Button onClick={addGuest} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить</Button>
                 <DownloadMenu onSelect={handleExport} />
               </div>
           </div>
@@ -672,7 +670,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
   };
 
   return (
-    <div className="animate-fadeIn max-w-2xl mx-auto pb-20 md:pb-0">
+    <div className="animate-fadeIn max-w-2xl mx-auto pb-32 md:pb-0">
       <div className="flex justify-end mb-4 print:hidden">
           <DownloadMenu onSelect={handleExport} />
       </div>
@@ -721,7 +719,7 @@ const TimingView = ({ timing, updateProject, downloadCSV }) => {
 };
 
 const NotesView = ({ notes, updateProject }) => (
-  <div className="h-full flex flex-col animate-fadeIn pb-20 md:pb-0">
+  <div className="h-full flex flex-col animate-fadeIn pb-32 md:pb-0">
       <textarea 
           className="flex-1 w-full bg-white p-8 rounded-2xl shadow-sm border border-[#EBE5E0] text-[#414942] leading-relaxed resize-none focus:ring-2 focus:ring-[#936142]/10 outline-none min-h-[50vh] print:shadow-none print:border-none print:p-0"
           placeholder="Место для важных мыслей, черновиков клятв и идей..."
@@ -748,6 +746,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
+
+  // ПРОКРУТКА НАВЕРХ ПРИ СМЕНЕ ЭКРАНА
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view, activeTab]);
 
   const handleCreateProject = () => {
     const creationDate = new Date();
@@ -816,9 +819,9 @@ export default function App() {
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
         <div className="max-w-6xl mx-auto">
-          <header className="flex justify-between items-center mb-16">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-[#414942] tracking-tight">Wed.Control</h1>
                 <p className="text-[#AC8A69] mt-2">Эстетика планирования</p>
@@ -826,7 +829,7 @@ export default function App() {
             <Button onClick={() => {
                setFormData(INITIAL_FORM_STATE);
                setView('create');
-            }}>
+            }} className="w-full md:w-auto">
                <Plus size={20}/> Новый проект
             </Button>
           </header>
@@ -869,7 +872,7 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
         <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
@@ -881,7 +884,8 @@ export default function App() {
           <div className="space-y-6">
             <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
                 <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
-                <div className="grid grid-cols-2 gap-6">
+                {/* ТЕПЕРЬ ТУТ 1 КОЛОНКА НА МОБИЛЬНОМ, 2 НА КОМПЬЮТЕРЕ */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} />
                     <Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} />
                 </div>
@@ -980,7 +984,7 @@ export default function App() {
          </nav>
 
          {/* --- MAIN CONTENT --- */}
-         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-24 print:p-0">
+         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-32 print:p-0">
             
             {activeTab === 'overview' && (
                 <div className="space-y-6 md:space-y-8">
