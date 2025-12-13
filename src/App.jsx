@@ -3,7 +3,7 @@ import {
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
   MapPin, X, ArrowRight, CalendarDays, Menu, 
-  FileText, FileSpreadsheet, File
+  FileText, FileSpreadsheet, File, Settings, Archive, Save
 } from 'lucide-react';
 
 // --- DATA & CONFIGURATION ---
@@ -189,21 +189,20 @@ const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
     style={style}
-    // УБРАЛ active:scale-[0.99] - это мешало скроллу
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all' : ''}`}
   >
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = 'primary', className = "", ...props }) => {
-  // УБРАЛ transform active:scale-95 - это тоже могло мешать
-  const baseStyle = "px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 select-none transition-colors";
+  const baseStyle = "px-6 py-3 rounded-xl font-medium transform active:scale-95 flex items-center justify-center gap-2 select-none transition-colors";
   const variants = {
     primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20`,
     secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
     outline: `border border-[${COLORS.secondary}] text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/5`,
-    ghost: `text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/10`
+    ghost: `text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/10`,
+    danger: `bg-red-50 text-red-500 hover:bg-red-100 border border-red-200`
   };
   
   return (
@@ -299,6 +298,54 @@ const Checkbox = ({ checked, onChange }) => (
   </div>
 );
 
+// --- MODALS ---
+
+const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
+  const [data, setData] = useState({ ...project });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center sticky top-0 bg-white z-10">
+          <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+           <div className="grid grid-cols-2 gap-4">
+              <Input label="Жених" value={data.groomName} onChange={e => setData({...data, groomName: e.target.value})} />
+              <Input label="Невеста" value={data.brideName} onChange={e => setData({...data, brideName: e.target.value})} />
+           </div>
+           <Input label="Организатор" value={data.organizerName} onChange={e => setData({...data, organizerName: e.target.value})} />
+           <div className="grid grid-cols-2 gap-4">
+              <Input label="Дата" type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} />
+              <Input label="Гостей" type="number" value={data.guestsCount} onChange={e => setData({...data, guestsCount: e.target.value})} />
+           </div>
+           <Input label="Локация" value={data.venueName} onChange={e => setData({...data, venueName: e.target.value})} />
+           <Input label="Адрес" value={data.venueAddress} onChange={e => setData({...data, venueAddress: e.target.value})} />
+        </div>
+
+        <div className="p-6 border-t border-[#EBE5E0] bg-[#F9F7F5] space-y-3">
+           <Button className="w-full" onClick={() => onSave(data)}>
+             <Save size={18} /> Сохранить изменения
+           </Button>
+           
+           <div className="flex gap-3 pt-2">
+             <Button variant="outline" className="flex-1" onClick={() => onArchive(project.id)}>
+               <Archive size={18} /> {project.archived ? 'Вернуть' : 'В архив'}
+             </Button>
+             <Button variant="danger" className="flex-1" onClick={() => onDelete(project.id)}>
+               <Trash2 size={18} /> Удалить
+             </Button>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- SUB-VIEWS ---
 
 const TasksView = ({ tasks, updateProject, formatDate }) => {
@@ -349,7 +396,6 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
         <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
         <div className="flex gap-2 w-full md:w-auto">
-           {/* КНОПКА ТЕПЕРЬ PRIMARY */}
            <Button variant="primary" onClick={addTask} className="flex-1 md:flex-none">
             <Plus size={18} /> Добавить
           </Button>
@@ -815,6 +861,8 @@ export default function App() {
   const [currentProject, setCurrentProject] = useState(null);
   const [view, setView] = useState('dashboard');
   const [activeTab, setActiveTab] = useState('overview');
+  const [dashboardTab, setDashboardTab] = useState('active'); // 'active' | 'archived'
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
@@ -822,7 +870,7 @@ export default function App() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // УБРАЛ ВСЮ ЛОГИКУ СКРОЛЛА - ТЕПЕРЬ ОН ПОЛНОСТЬЮ НАТИВНЫЙ
+  // SCROLL RESET IS REMOVED INTENTIONALLY FOR BETTER UX
 
   const handleCreateProject = () => {
     const creationDate = new Date();
@@ -866,6 +914,7 @@ export default function App() {
     const newProject = {
       id: Date.now(),
       ...formData,
+      status: 'active', // 'active' | 'archived'
       tasks: projectTasks,
       expenses: projectExpenses,
       timing: projectTiming,
@@ -887,11 +936,47 @@ export default function App() {
     });
   }, []);
 
-  const sortedProjects = [...projects].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const saveProjectDetails = (updatedData) => {
+    setCurrentProject(updatedData);
+    setProjects(projList => projList.map(p => p.id === updatedData.id ? updatedData : p));
+    setIsSettingsOpen(false);
+  };
+
+  const toggleArchive = (id) => {
+    const project = projects.find(p => p.id === id);
+    const newStatus = project.status === 'archived' ? 'active' : 'archived';
+    
+    // Update local state and current project
+    const updatedProjects = projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
+    setProjects(updatedProjects);
+    
+    if (currentProject && currentProject.id === id) {
+        setCurrentProject({ ...currentProject, status: newStatus });
+    }
+    setIsSettingsOpen(false);
+    
+    // If archiving from inside project view, go back to dashboard
+    if (newStatus === 'archived') {
+        setView('dashboard');
+    }
+  };
+
+  const deleteProject = (id) => {
+    if (window.confirm('Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.')) {
+        setProjects(projects.filter(p => p.id !== id));
+        setCurrentProject(null);
+        setView('dashboard');
+        setIsSettingsOpen(false);
+    }
+  };
+
+  const sortedProjects = [...projects]
+    .filter(p => (p.status || 'active') === dashboardTab)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
         <div className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
@@ -906,6 +991,21 @@ export default function App() {
             </Button>
           </header>
 
+          <div className="flex gap-4 mb-8 border-b border-[#EBE5E0]">
+             <button 
+                onClick={() => setDashboardTab('active')}
+                className={`pb-3 px-1 text-sm font-medium transition-colors ${dashboardTab === 'active' ? 'text-[#936142] border-b-2 border-[#936142]' : 'text-[#CCBBA9] hover:text-[#414942]'}`}
+             >
+                Активные
+             </button>
+             <button 
+                onClick={() => setDashboardTab('archived')}
+                className={`pb-3 px-1 text-sm font-medium transition-colors ${dashboardTab === 'archived' ? 'text-[#936142] border-b-2 border-[#936142]' : 'text-[#CCBBA9] hover:text-[#414942]'}`}
+             >
+                Архив
+             </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {sortedProjects.map(p => (
               <div 
@@ -918,7 +1018,9 @@ export default function App() {
                 </div>
                 <div className="relative z-10">
                     <p className="text-xs font-bold text-[#AC8A69] uppercase tracking-widest mb-3">{formatDate(p.date)}</p>
-                    <h3 className="text-2xl font-serif text-[#414942] mb-1">{p.groomName} & {p.brideName}</h3>
+                    <h3 className="text-2xl font-serif text-[#414942] mb-1 leading-tight">
+                        {p.groomName} <span className="text-[#AC8A69]">&</span> {p.brideName}
+                    </h3>
                     <p className="text-[#CCBBA9] text-sm mb-6">{p.venueName || 'Локация не выбрана'}</p>
                     {p.organizerName && <p className="text-[#AC8A69] text-xs font-medium">Org: {p.organizerName}</p>}
 
@@ -931,10 +1033,9 @@ export default function App() {
               </div>
             ))}
             
-            {projects.length === 0 && (
+            {sortedProjects.length === 0 && (
                 <div className="col-span-full text-center py-20 text-[#CCBBA9]">
-                    <p className="text-xl">Пока нет активных проектов.</p>
-                    <p>Самое время создать красоту.</p>
+                    <p className="text-xl">В этом разделе пока пусто.</p>
                 </div>
             )}
           </div>
@@ -945,7 +1046,7 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
         <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
@@ -1011,7 +1112,18 @@ export default function App() {
     const daysLeft = getDaysUntil(currentProject.date);
 
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
+      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat]">
+         {/* SETTINGS MODAL */}
+         {isSettingsOpen && (
+            <SettingsModal 
+                project={currentProject} 
+                onClose={() => setIsSettingsOpen(false)}
+                onSave={saveProjectDetails}
+                onDelete={deleteProject}
+                onArchive={toggleArchive}
+            />
+         )}
+
          {/* --- HEADER --- */}
          <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EBE5E0] print:hidden">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -1038,9 +1150,14 @@ export default function App() {
                     ))}
                 </div>
 
-                <div className="text-right">
-                    <p className="font-serif text-[#414942] font-medium text-sm md:text-base">{currentProject.groomName} & {currentProject.brideName}</p>
-                    <p className="text-[10px] md:text-xs text-[#AC8A69]">{formatDate(currentProject.date)}</p>
+                <div className="text-right flex items-center gap-4">
+                    <div className="hidden md:block">
+                        <p className="font-serif text-[#414942] font-medium text-sm md:text-base">{currentProject.groomName} & {currentProject.brideName}</p>
+                        <p className="text-[10px] md:text-xs text-[#AC8A69]">{formatDate(currentProject.date)}</p>
+                    </div>
+                    <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-[#AC8A69] hover:text-[#936142] hover:bg-[#F9F7F5] rounded-full transition-colors">
+                        <Settings size={20} />
+                    </button>
                 </div>
             </div>
             {/* Mobile Nav */}
@@ -1062,7 +1179,7 @@ export default function App() {
          </nav>
 
          {/* --- MAIN CONTENT --- */}
-         <main className="max-w-7xl mx-auto p-4 md:p-12 animate-fadeIn pb-32 print:p-0">
+         <main className="max-w-7xl mx-auto p-4 md:p-12 pb-32 print:p-0">
             
             {activeTab === 'overview' && (
                 <div className="space-y-6 md:space-y-8">
