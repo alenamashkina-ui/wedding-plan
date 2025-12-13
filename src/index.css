@@ -4,20 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* БЛОКИРУЕМ прокрутку самой страницы, чтобы не было "резинового" эффекта и обновления */
 html, body {
   margin: 0;
   padding: 0;
-  height: auto;
-  min-height: 100%;
-  overflow-x: visible; /* Важно: разрешаем браузеру скроллить */
-  overflow-y: visible;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Запрещаем скролл body */
   background-color: #F9F7F5;
   font-family: 'Montserrat', sans-serif;
-  -webkit-overflow-scrolling: touch; /* Включаем инерцию на iOS */
+  overscroll-behavior: none; /* ОТКЛЮЧАЕТ PULL-TO-REFRESH */
+  touch-action: pan-x pan-y;
 }
 
 #root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
