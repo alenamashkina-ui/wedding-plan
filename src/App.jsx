@@ -302,7 +302,6 @@ const Checkbox = ({ checked, onChange }) => (
 // --- SUB-VIEWS ---
 
 const TasksView = ({ tasks, updateProject, formatDate }) => {
-  // Сортировка: Сначала по статусу (невыполненные выше), потом по дате
   const sortTasks = (taskList) => [...taskList].sort((a, b) => {
     if (a.done === b.done) {
         return new Date(a.deadline) - new Date(b.deadline);
@@ -311,7 +310,6 @@ const TasksView = ({ tasks, updateProject, formatDate }) => {
   });
 
   const updateTask = (id, field, value) => {
-    // При обновлении статуса сразу сортируем
     const updatedList = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
     if (field === 'done') {
         updateProject('tasks', sortTasks(updatedList));
@@ -824,11 +822,6 @@ export default function App() {
     localStorage.setItem('wedding_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // ПРОКРУТКА НАВЕРХ (ПРОСТОЙ СПОСОБ)
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view, activeTab]);
-
   const handleCreateProject = () => {
     const creationDate = new Date();
     const weddingDate = new Date(formData.date);
@@ -896,7 +889,7 @@ export default function App() {
 
   if (view === 'dashboard') {
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] p-6 md:p-12 print:hidden pb-32">
         <div className="max-w-6xl mx-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
             <div>
@@ -950,7 +943,7 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex items-center justify-center p-6 print:hidden pb-32">
         <Card className="w-full max-w-2xl p-8 md:p-12">
           <div className="flex items-center mb-8">
             <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
@@ -1016,7 +1009,7 @@ export default function App() {
     const daysLeft = getDaysUntil(currentProject.date);
 
     return (
-      <div className="min-h-screen w-full bg-[#F9F7F5] font-[Montserrat]" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
          {/* --- HEADER --- */}
          <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EBE5E0] print:hidden">
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
