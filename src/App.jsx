@@ -160,9 +160,10 @@ const downloadCSV = (data, filename) => {
 
 // --- COMPONENTS ---
 
-const Card = ({ children, className = "", onClick }) => (
+const Card = ({ children, className = "", onClick, style }) => (
   <div 
     onClick={onClick}
+    style={style}
     className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all active:scale-[0.99]' : ''}`}
   >
     {children}
@@ -417,10 +418,12 @@ const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
            <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">Внесено</p>
            <p className="text-lg md:text-2xl font-medium text-[#936142]">{formatCurrency(totals.paid)}</p>
         </Card>
-        <Card className="p-4 md:p-6 text-center bg-[#414942] text-white">
-           <p className="text-white/60 text-[10px] md:text-xs uppercase tracking-widest mb-2">Остаток</p>
+        
+        {/* ВОТ ЗДЕСЬ Я ЗАМЕНИЛ CARD НА ОБЫЧНЫЙ DIV С БЕЛЫМ ТЕКСТОМ */}
+        <div className="bg-[#414942] rounded-2xl shadow-sm border border-[#EBE5E0] p-4 md:p-6 text-center">
+           <p className="text-[10px] md:text-xs uppercase tracking-widest mb-2 text-white/60">Остаток</p>
            <p className="text-lg md:text-2xl font-medium text-white">{formatCurrency(totals.fact - totals.paid)}</p>
-        </Card>
+        </div>
       </div>
 
       <div className="hidden print:block mb-8">
