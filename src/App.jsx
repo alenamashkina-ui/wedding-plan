@@ -9,7 +9,7 @@ import {
 
 // --- КОНФИГУРАЦИЯ ---
 
-const SITE_URL = 'https://wedding-plan.vercel.app'; // Ссылка на демо
+const SITE_URL = 'https://wedding-plan.vercel.app'; 
 
 const COLORS = {
   primary: '#936142',
@@ -302,7 +302,7 @@ const OrganizersView = ({ team, onAdd, onDelete, onBack }) => {
             <nav className="p-6 flex items-center gap-4">
                 <button onClick={onBack} className="flex items-center gap-2 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={20}/> <span className="font-bold text-lg">Назад</span></button>
             </nav>
-            <div className="p-6 md:p-12 max-w-4xl mx-auto animate-fadeIn">
+            <div className="p-6 md:p-12 max-w-4xl mx-auto animate-fadeIn pb-32">
                 <h2 className="text-3xl font-bold text-[#414942] mb-8">Команда</h2>
                 <Card className="p-6 mb-8 bg-white border-[#EBE5E0]">
                     <h3 className="font-bold text-[#936142] mb-4">Добавить организатора</h3>
@@ -334,14 +334,15 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
   const [data, setData] = useState({ ...project });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh] my-auto">
+    // FIX: overflow-y-auto на обертке, чтобы скроллить весь экран, если модалка высокая
+    <div className="fixed inset-0 z-50 flex justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-auto min-h-min">
         <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
           <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
         </div>
         
-        <div className="p-6 overflow-y-auto custom-scrollbar">
+        <div className="p-6">
            {/* Блок доступа клиента */}
            <div className="bg-[#936142] p-5 rounded-2xl mb-6 text-white shadow-lg shadow-[#936142]/20">
               <div className="flex justify-between items-start mb-2">
@@ -349,7 +350,7 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
                  <LinkIcon size={16} className="opacity-80"/>
               </div>
               <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
-                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}?id=${project.id}`} readOnly />
+                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}/?id=${project.id}`} readOnly />
                  <button onClick={() => alert('Ссылка скопирована (демо)')}><Copy size={16}/></button>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -391,8 +392,8 @@ const ProfileModal = ({ user, onClose, onSave }) => {
     const [secret, setSecret] = useState(user?.secret || '');
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative">
+        <div className="fixed inset-0 z-50 flex justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-auto">
                 <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
                 <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
                 <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
@@ -668,10 +669,9 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] flex items-center justify-center p-6 font-[Montserrat] pb-32">
-        {/* FIX: Убрали жесткое центрирование, добавили my-auto для больших экранов */}
-        <div className="w-full max-w-2xl flex flex-col justify-center min-h-min">
-            <Card className="p-8 md:p-12 animate-slideUp">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] overflow-y-auto">
+        <div className="flex justify-center items-start min-h-full p-6 py-12">
+            <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp my-auto">
                 <div className="flex items-center mb-8"><button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={24}/></button><h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2></div>
                 <div className="space-y-6">
                     <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
