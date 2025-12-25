@@ -152,8 +152,7 @@ const formatCurrency = (val) => {
 };
 
 const downloadCSV = (data, filename) => {
-  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-    + data.map(e => e.join(";")).join("\n");
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + data.map(e => e.join(";")).join("\n");
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -166,122 +165,64 @@ const downloadCSV = (data, filename) => {
 // --- UI COMPONENTS ---
 
 const Card = ({ children, className = "", onClick }) => (
-  <div 
-    onClick={onClick}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all active:scale-[0.99]' : ''}`}
-  >
+  <div onClick={onClick} className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}>
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = 'primary', className = "", disabled, ...props }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-medium transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 select-none";
-  const variants = {
-    primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20 disabled:bg-gray-400 disabled:shadow-none`,
-    secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
-    outline: `border border-[${COLORS.secondary}] text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/5`,
-    ghost: `text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/10`,
-    danger: `bg-red-50 text-red-600 hover:bg-red-100`
-  };
-    
+  const styles = variant === 'primary' 
+    ? "bg-[#936142] text-white hover:bg-[#7D5238] shadow-lg shadow-[#936142]/20" 
+    : variant === 'secondary'
+    ? "bg-[#CCBBA9]/20 text-[#414942] hover:bg-[#CCBBA9]/30"
+    : variant === 'danger'
+    ? "bg-red-50 text-red-500 border border-red-100 hover:bg-red-100"
+    : "border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/10";
+  
   return (
-    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''}`} {...props}>
+    <button onClick={onClick} disabled={disabled} className={`px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${styles} ${className} ${disabled ? 'opacity-50' : ''}`}>
       {children}
     </button>
   );
 };
 
-const Input = ({ label, onKeyDown, ...props }) => (
+const Input = ({ label, ...props }) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
-    <input 
-      onKeyDown={onKeyDown}
-      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 transition-all outline-none"
-      {...props}
-    />
+    <input className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none" {...props} />
   </div>
 );
 
-const MoneyInput = ({ value, onChange, className }) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const displayValue = isFocused ? (value === 0 ? '' : value) : formatCurrency(value);
-  const handleChange = (e) => {
-    const rawValue = e.target.value.replace(/\s/g, '');
-    if (rawValue === '') onChange(0);
-    else if (!isNaN(rawValue)) onChange(parseInt(rawValue, 10));
-  };
-  return (
-    <input
-      type="text"
-      className={`${className} outline-none bg-transparent`}
-      value={displayValue}
-      onChange={handleChange}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      placeholder="0"
-    />
-  );
-};
-
 const AutoHeightTextarea = ({ value, onChange, className, placeholder }) => {
-  const textareaRef = useRef(null);
-
-  const adjustHeight = useCallback(() => {
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = '28px';
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
     }
-  }, []);
-
-  useEffect(() => {
-    adjustHeight();
-  }, [value, adjustHeight]);
-
-  useEffect(() => {
-     adjustHeight();
-     const timer = setTimeout(adjustHeight, 10);
-     return () => clearTimeout(timer);
-  }, [adjustHeight]);
-
+  }, [value]);
   return (
-    <textarea
-      ref={textareaRef}
-      className={`${className} resize-none overflow-hidden block`}
-      value={value}
-      onChange={(e) => {
-          onChange(e);
-      }}
-      rows={1}
-      placeholder={placeholder}
-    />
+    <textarea ref={ref} className={`${className} resize-none overflow-hidden block`} value={value} onChange={onChange} rows={1} placeholder={placeholder} />
   );
 };
 
 const Checkbox = ({ checked, onChange }) => (
-  <div 
-    onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
-    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors duration-300 flex-shrink-0 print:border-[#414942] ${checked ? `bg-[${COLORS.primary}] border-[${COLORS.primary}] print:bg-[#414942]` : `border-[${COLORS.neutral}] bg-transparent`}`}
-  >
+  <div onClick={(e) => { e.stopPropagation(); onChange(!checked); }} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors ${checked ? 'bg-[#936142] border-[#936142]' : 'border-[#CCBBA9]'}`}>
     {checked && <CheckSquare size={14} color="white" />}
   </div>
 );
 
-const DownloadMenu = ({ onSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const DownloadMenu = ({ onExport }) => {
+  const [open, setOpen] = useState(false);
   return (
     <div className="relative print:hidden">
-      <Button variant="outline" onClick={() => setIsOpen(!isOpen)}>
-        <Download size={18} />
-      </Button>
-      {isOpen && (
+      <button onClick={() => setOpen(!open)} className="px-4 py-3 rounded-xl border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/5"><Download size={18}/></button>
+      {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden animate-fadeIn">
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
+          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden">
             {['excel', 'csv', 'pdf'].map(type => (
-              <button key={type} onClick={() => { onSelect(type); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors uppercase">
-                {type}
-              </button>
+              <button key={type} onClick={() => { onExport(type); setOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium uppercase">{type}</button>
             ))}
           </div>
         </>
@@ -290,52 +231,33 @@ const DownloadMenu = ({ onSelect }) => {
   );
 };
 
-// --- UI VIEWS ---
-
-const OrganizersView = ({ team, onAdd, onDelete, onBack }) => {
-    const [newName, setNewName] = useState('');
-    const [newEmail, setNewEmail] = useState('');
-    const [newPass, setNewPass] = useState('');
-
-    return (
-        <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
-            <nav className="p-6 flex items-center gap-4">
-                <button onClick={onBack} className="flex items-center gap-2 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={20}/> <span className="font-bold text-lg">Назад</span></button>
-            </nav>
-            <div className="p-6 md:p-12 max-w-4xl mx-auto animate-fadeIn pb-32">
-                <h2 className="text-3xl font-bold text-[#414942] mb-8">Команда</h2>
-                <Card className="p-6 mb-8 bg-white border-[#EBE5E0]">
-                    <h3 className="font-bold text-[#936142] mb-4">Добавить организатора</h3>
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Имя" value={newName} onChange={e => setNewName(e.target.value)} />
-                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
-                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Пароль" value={newPass} onChange={e => setNewPass(e.target.value)} />
-                    </div>
-                    <Button onClick={() => { onAdd({ id: Date.now(), name: newName, email: newEmail, password: newPass }); setNewName(''); setNewEmail(''); setNewPass(''); }} className="mt-4 w-full md:w-auto">Добавить</Button>
-                </Card>
-                <div className="grid gap-4">
-                    {team.map(org => (
-                        <div key={org.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-[#EBE5E0]">
-                            <div>
-                                <p className="font-bold text-[#414942]">{org.name}</p>
-                                <p className="text-xs text-[#AC8A69]">{org.email} | Пароль: {org.password}</p>
-                            </div>
-                            <button onClick={() => onDelete(org.id)} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
-                        </div>
-                    ))}
-                    {team.length === 0 && <p className="text-center text-[#CCBBA9]">В команде пока никого нет.</p>}
-                </div>
-            </div>
-        </div>
-    );
+const MoneyInput = ({ value, onChange, className }) => {
+  const [focus, setFocus] = useState(false);
+  const display = focus ? (value === 0 ? '' : value) : formatCurrency(value);
+  return (
+    <input
+      className={`${className} outline-none bg-transparent`}
+      value={display}
+      onChange={(e) => {
+        const val = e.target.value.replace(/\s/g, '');
+        onChange(val === '' ? 0 : isNaN(val) ? 0 : parseInt(val));
+      }}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+      placeholder="0"
+    />
+  );
 };
+
+// --- МОДАЛЬНЫЕ ОКНА ---
 
 const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
   const [data, setData] = useState({ ...project });
 
   return (
+    // FIX: добавил overflow-y-auto и items-start для прокрутки на мобильных
     <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-10 min-h-min mb-20">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-8 min-h-min">
         <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
           <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
@@ -348,14 +270,12 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
                  <LinkIcon size={16} className="opacity-80"/>
               </div>
               <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
-                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}/?id=${project.id}`} readOnly />
+                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}?id=${project.id}`} readOnly />
                  <button onClick={() => alert('Ссылка скопирована (демо)')}><Copy size={16}/></button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                    <p className="text-[10px] uppercase opacity-60 mb-1">Пароль клиента</p>
-                    <input className="bg-transparent text-xl font-bold w-full outline-none" value={data.clientPassword || '1234'} onChange={e => setData({...data, clientPassword: e.target.value})} />
-                 </div>
+              <div>
+                 <p className="text-[10px] uppercase opacity-60 mb-1">Пароль</p>
+                 <input className="bg-transparent text-xl font-bold w-full outline-none" value={data.clientPassword || '1234'} onChange={e => setData({...data, clientPassword: e.target.value})} />
               </div>
            </div>
 
@@ -391,7 +311,7 @@ const ProfileModal = ({ user, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-10">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-8">
                 <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
                 <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
                 <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
@@ -401,6 +321,44 @@ const ProfileModal = ({ user, onClose, onSave }) => {
                     <input className="bg-transparent w-full text-[#414942] outline-none" placeholder="Придумайте слово" value={secret} onChange={e => setSecret(e.target.value)} />
                 </div>
                 <Button className="w-full" onClick={() => onSave({ ...user, name, email, secret })}>Сохранить изменения</Button>
+            </div>
+        </div>
+    );
+};
+
+const OrganizersView = ({ team, onAdd, onDelete, onBack }) => {
+    const [newName, setNewName] = useState('');
+    const [newEmail, setNewEmail] = useState('');
+    const [newPass, setNewPass] = useState('');
+
+    return (
+        <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
+            <nav className="p-6 flex items-center gap-4">
+                <button onClick={onBack} className="flex items-center gap-2 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={20}/> <span className="font-bold text-lg">Назад</span></button>
+            </nav>
+            <div className="p-6 md:p-12 max-w-4xl mx-auto animate-fadeIn pb-32">
+                <h2 className="text-3xl font-bold text-[#414942] mb-8">Команда</h2>
+                <Card className="p-6 mb-8 bg-white border-[#EBE5E0]">
+                    <h3 className="font-bold text-[#936142] mb-4">Добавить организатора</h3>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Имя" value={newName} onChange={e => setNewName(e.target.value)} />
+                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 outline-none" placeholder="Пароль" value={newPass} onChange={e => setNewPass(e.target.value)} />
+                    </div>
+                    <Button onClick={() => { onAdd({ id: Date.now(), name: newName, email: newEmail, password: newPass }); setNewName(''); setNewEmail(''); setNewPass(''); }} className="mt-4 w-full md:w-auto">Добавить</Button>
+                </Card>
+                <div className="grid gap-4">
+                    {team.map(org => (
+                        <div key={org.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center border border-[#EBE5E0]">
+                            <div>
+                                <p className="font-bold text-[#414942]">{org.name}</p>
+                                <p className="text-xs text-[#AC8A69]">{org.email} | Пароль: {org.password}</p>
+                            </div>
+                            <button onClick={() => onDelete(org.id)} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+                        </div>
+                    ))}
+                    {team.length === 0 && <p className="text-center text-[#CCBBA9]">В команде пока никого нет.</p>}
+                </div>
             </div>
         </div>
     );
@@ -667,8 +625,8 @@ export default function App() {
 
   if (view === 'create') {
     return (
-      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] overflow-y-auto px-4 py-8">
-          <div className="w-full max-w-2xl mx-auto pb-32">
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat] flex flex-col items-center p-4 md:p-6 overflow-y-auto">
+        <div className="w-full max-w-2xl my-8 md:my-12">
             <Card className="p-8 md:p-12 animate-slideUp bg-white">
                 <div className="flex items-center mb-8"><button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={24}/></button><h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2></div>
                 <div className="space-y-6">
