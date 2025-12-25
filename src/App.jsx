@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
-  MapPin, X, ArrowRight, CalendarDays, 
-  Settings, Archive, Save, Copy, Link as LinkIcon, PieChart, Edit3, Key, Shield, Users as UsersIcon, LogOut
+  MapPin, X, ArrowRight, CalendarDays, Menu, 
+  FileText, FileSpreadsheet, File, PieChart, Settings, 
+  Archive, LogOut, Lock, User, Crown, Key, Loader2, Users as UsersIcon, Link as LinkIcon, Edit3, Save, XCircle, Shield, Copy
 } from 'lucide-react';
 
 // --- КОНФИГУРАЦИЯ ---
@@ -13,38 +14,104 @@ const SITE_URL = 'https://wedding-plan.vercel.app';
 const COLORS = {
   primary: '#936142',
   secondary: '#AC8A69',
+  accent: '#C58970',
+  neutral: '#CCBBA9',
+  dark: '#414942',
+  white: '#FFFFFF',
   bg: '#F9F7F5'
 };
 
 const INITIAL_EXPENSES = [
   { category: 'Декор', name: 'Декор и флористика', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Площадка', name: 'Аренда мебели', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Полиграфия', name: 'Свадебная полиграфия', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Digital', name: 'Создание сайта', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Фото и Видео', name: 'Предсвадебная съемка', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Фото и Видео', name: 'Фотограф', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Фото и Видео', name: 'Фотокнига', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Фото и Видео', name: 'Видеограф', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Фото и Видео', name: 'Монтаж SDE-ролика', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Фото и Видео', name: 'Мобильный видеомейкер', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Программа', name: 'Ведущий + диджей', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Техническое обеспечение', name: 'Техническое обеспечение', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Техническое обеспечение', name: 'Спецэффекты', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Образ', name: 'Стилист', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Образ', name: 'Стилист для гостей', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Программа', name: 'Кавер-группа', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Программа', name: 'Бытовой райдер артистов', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Логистика', name: 'Размещение иногородних гостей', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Программа', name: 'Постановка свадебного танца', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Логистика', name: 'Аренда автомобиля', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Логистика', name: 'Автобусы для гостей', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Логистика', name: 'Вечерняя развозка', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Детям', name: 'Аниматор для детей/няня', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Банкет', name: 'Торт', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Банкет', name: 'Напитки', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Банкет', name: 'Комплименты для гостей', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Финал', name: 'Фейерверк', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Команда', name: 'Организация и координация свадьбы', plan: 0, fact: 0, paid: 0, note: '' },
   { category: 'Банкет', name: 'Свадебный ужин', plan: 0, fact: 0, paid: 0, note: '' },
-  { category: 'Команда', name: 'Организация', plan: 0, fact: 0, paid: 0, note: '' },
+  { category: 'Прочее', name: 'Непредвиденные расходы', plan: 0, fact: 0, paid: 0, note: '' },
 ];
 
 const INITIAL_TIMING = [
   { time: '09:00', event: 'Пробуждение' },
-  { time: '10:00', event: 'Сборы невесты' },
+  { time: '09:30', event: 'Завтрак' },
+  { time: '10:00', event: 'Приезд стилиста' },
+  { time: '11:00', event: 'Начало работы фотографа и видеооператора' },
+  { time: '12:30', event: 'Подача автомобиля' },
   { time: '13:00', event: 'Фотосессия' },
-  { time: '16:00', event: 'Церемония' },
-  { time: '17:00', event: 'Банкет' },
-  { time: '23:00', event: 'Финал' },
+  { time: '16:00', event: 'Сбор гостей' },
+  { time: '17:00', event: 'Начало ужина' },
+  { time: '23:00', event: 'Окончание' },
 ];
 
 const TASK_TEMPLATES = [
-  { text: 'Определить бюджет', pos: 0.0 },
-  { text: 'Составить список гостей', pos: 0.1 },
-  { text: 'Выбрать площадку', pos: 0.2 },
-  { text: 'Найти фотографа', pos: 0.3 },
-  { text: 'Выбрать платье', pos: 0.5 },
-  { text: 'Заказать торт', pos: 0.7 },
-  { text: 'Рассадка гостей', pos: 0.9 },
+  { text: 'Определить бюджет свадьбы', pos: 0.00 },
+  { text: 'Составить список гостей', pos: 0.01 },
+  { text: 'Заполнить анкету', pos: 0.02 },
+  { text: 'Выбрать дату регистрации', pos: 0.03 },
+  { text: 'Выбрать день свадьбы', pos: 0.04 },
+  { text: 'Составить тайминг свадебного дня', pos: 0.05 },
+  { text: 'Подать заявления в ЗАГС', pos: 0.06 },
+  { text: 'Утвердить концепцию свадьбы', pos: 0.10 },
+  { text: 'Выбрать место проведения свадьбы', pos: 0.12 },
+  { text: 'Продумать план Б на случай непогоды', pos: 0.15 },
+  { text: 'Утвердить текст для приглашений', pos: 0.18 },
+  { text: 'Заказать приглашения', pos: 0.20 },
+  { text: 'Выбрать фотографа', pos: 0.22 },
+  { text: 'Выбрать видеооператора', pos: 0.22 },
+  { text: 'Выбрать ведущего', pos: 0.23 },
+  { text: 'Выбрать стилиста', pos: 0.25 },
+  { text: 'Запланировать репетицию образа', pos: 0.26 },
+  { text: 'Выбрать стилиста для мам и подружек', pos: 0.27 },
+  { text: 'Забронировать автомобиль с водителем', pos: 0.30 },
+  { text: 'Выбрать артистов для шоу-программы', pos: 0.32 },
+  { text: 'Выбрать студию декора', pos: 0.35 },
+  { text: 'Утвердить стилистику и цветовую палитру свадьбы', pos: 0.36 },
+  { text: 'Утвердить с декоратором смету по декору', pos: 0.40 },
+  { text: 'Утвердить маршрут и локации для фотосессии', pos: 0.42 },
+  { text: 'Заказать звуковое, световое, видеооборудование и спецэффекты', pos: 0.45 },
+  { text: 'Заказать комплименты для гостей', pos: 0.50 },
+  { text: 'Утвердить меню', pos: 0.55 },
+  { text: 'Утвердить программу с ведущим', pos: 0.56 },
+  { text: 'Купить свадебное платье', pos: 0.60 },
+  { text: 'Купить костюм для жениха', pos: 0.61 },
+  { text: 'Купить обручальные кольца', pos: 0.62 },
+  { text: 'Выбрать парфюм для свадьбы', pos: 0.65 },
+  { text: 'Выбрать кондитера, утвердить дизайн и начинки для свадебного торта', pos: 0.70 },
+  { text: 'Заказать напитки', pos: 0.72 },
+  { text: 'Организовать девичник', pos: 0.75 },
+  { text: 'Организовать мальчишник', pos: 0.75 },
+  { text: 'Продумать образы на сборы в день свадьбы', pos: 0.80 },
+  { text: 'Выбрать школу танцев, музыкальную композицию и разучить свадебный танец', pos: 0.82 },
+  { text: 'Провести опрос гостей (присутствие, еда, автобус)', pos: 0.85 },
+  { text: 'Забронировать отель для приезжих гостей', pos: 0.88 },
+  { text: 'Забронировать автобусы для гостей', pos: 0.89 },
+  { text: 'Забронировать автобус для вечерней развозки гостей', pos: 0.90 },
+  { text: 'Составить план рассадки гостей', pos: 0.92 },
+  { text: 'Заказать питание для команды', pos: 0.93 },
+  { text: 'Составить плейлист для ди-джея', pos: 0.95 },
 ];
 
 const INITIAL_FORM_STATE = {
@@ -61,91 +128,160 @@ const INITIAL_FORM_STATE = {
   clientPassword: ''
 };
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+// --- UTILS ---
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const options = { day: 'numeric', month: 'long', year: 'numeric' };
+  return new Date(dateStr).toLocaleDateString('ru-RU', options);
 };
 
-const toInputDate = (dateStr) => dateStr ? new Date(dateStr).toISOString().split('T')[0] : '';
+const toInputDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toISOString().split('T')[0];
+};
 
 const getDaysUntil = (dateStr) => {
   const diff = new Date(dateStr) - new Date();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 };
 
-const formatCurrency = (val) => new Intl.NumberFormat('ru-RU', { style: 'decimal', maximumFractionDigits: 0 }).format(val || 0);
-
-const downloadCSV = (data, filename) => {
-  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + data.map(e => e.join(";")).join("\n");
-  const link = document.createElement("a");
-  link.href = encodeURI(csvContent);
-  link.download = filename;
-  link.click();
+const formatCurrency = (val) => {
+  if (val === undefined || val === null) return '0';
+  return new Intl.NumberFormat('ru-RU', { style: 'decimal', maximumFractionDigits: 0 }).format(val);
 };
 
-// --- UI КОМПОНЕНТЫ ---
+const downloadCSV = (data, filename) => {
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+    + data.map(e => e.join(";")).join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// --- UI COMPONENTS ---
 
 const Card = ({ children, className = "", onClick }) => (
-  <div onClick={onClick} className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}>
+  <div 
+    onClick={onClick}
+    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] hover:shadow-md transition-all active:scale-[0.99]' : ''}`}
+  >
     {children}
   </div>
 );
 
-const Button = ({ children, onClick, variant = 'primary', className = "", disabled }) => {
-  const styles = variant === 'primary' 
-    ? "bg-[#936142] text-white hover:bg-[#7D5238] shadow-lg shadow-[#936142]/20" 
-    : variant === 'secondary'
-    ? "bg-[#CCBBA9]/20 text-[#414942] hover:bg-[#CCBBA9]/30"
-    : variant === 'danger'
-    ? "bg-red-50 text-red-500 border border-red-100 hover:bg-red-100"
-    : "border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/10";
-  
+const Button = ({ children, onClick, variant = 'primary', className = "", disabled, ...props }) => {
+  const baseStyle = "px-6 py-3 rounded-xl font-medium transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 select-none";
+  const variants = {
+    primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20 disabled:bg-gray-400 disabled:shadow-none`,
+    secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
+    outline: `border border-[${COLORS.secondary}] text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/5`,
+    ghost: `text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/10`,
+    danger: `bg-red-50 text-red-600 hover:bg-red-100`
+  };
+    
   return (
-    <button onClick={onClick} disabled={disabled} className={`px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${styles} ${className} ${disabled ? 'opacity-50' : ''}`}>
+    <button onClick={onClick} disabled={disabled} className={`${baseStyle} ${variants[variant]} ${className} ${disabled ? 'opacity-50 cursor-not-allowed transform-none' : ''}`} {...props}>
       {children}
     </button>
   );
 };
 
-const Input = ({ label, ...props }) => (
+const Input = ({ label, onKeyDown, ...props }) => (
   <div className="mb-4">
     {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
-    <input className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none" {...props} />
+    <input 
+      onKeyDown={onKeyDown}
+      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 transition-all outline-none"
+      {...props}
+    />
   </div>
 );
 
-const AutoHeightTextarea = ({ value, onChange, className, placeholder }) => {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.style.height = '28px';
-      ref.current.style.height = `${ref.current.scrollHeight}px`;
-    }
-  }, [value]);
+const MoneyInput = ({ value, onChange, className }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const displayValue = isFocused ? (value === 0 ? '' : value) : formatCurrency(value);
+  const handleChange = (e) => {
+    const rawValue = e.target.value.replace(/\s/g, '');
+    if (rawValue === '') onChange(0);
+    else if (!isNaN(rawValue)) onChange(parseInt(rawValue, 10));
+  };
   return (
-    <textarea ref={ref} className={`${className} resize-none overflow-hidden block`} value={value} onChange={onChange} rows={1} placeholder={placeholder} />
+    <input
+      type="text"
+      className={`${className} outline-none bg-transparent`}
+      value={displayValue}
+      onChange={handleChange}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      placeholder="0"
+    />
+  );
+};
+
+const AutoHeightTextarea = ({ value, onChange, className, placeholder }) => {
+  const textareaRef = useRef(null);
+
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+  }, []);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
+
+  useEffect(() => {
+     adjustHeight();
+     const timer = setTimeout(adjustHeight, 10);
+     return () => clearTimeout(timer);
+  }, [adjustHeight]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className={`${className} resize-none overflow-hidden block`}
+      value={value}
+      onChange={(e) => {
+          onChange(e);
+      }}
+      rows={1}
+      placeholder={placeholder}
+    />
   );
 };
 
 const Checkbox = ({ checked, onChange }) => (
-  <div onClick={(e) => { e.stopPropagation(); onChange(!checked); }} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors ${checked ? 'bg-[#936142] border-[#936142]' : 'border-[#CCBBA9]'}`}>
+  <div 
+    onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors duration-300 flex-shrink-0 print:border-[#414942] ${checked ? `bg-[${COLORS.primary}] border-[${COLORS.primary}] print:bg-[#414942]` : `border-[${COLORS.neutral}] bg-transparent`}`}
+  >
     {checked && <CheckSquare size={14} color="white" />}
   </div>
 );
 
-const DownloadMenu = ({ onExport }) => {
-  const [open, setOpen] = useState(false);
+const DownloadMenu = ({ onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="relative print:hidden">
-      <button onClick={() => setOpen(!open)} className="px-4 py-3 rounded-xl border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/5"><Download size={18}/></button>
-      {open && (
+      <Button variant="outline" onClick={() => setIsOpen(!isOpen)}>
+        <Download size={18} />
+      </Button>
+      {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden">
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden animate-fadeIn">
             {['excel', 'csv', 'pdf'].map(type => (
-              <button key={type} onClick={() => { onExport(type); setOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium uppercase">{type}</button>
+              <button key={type} onClick={() => { onSelect(type); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors uppercase">
+                {type}
+              </button>
             ))}
           </div>
         </>
@@ -154,100 +290,7 @@ const DownloadMenu = ({ onExport }) => {
   );
 };
 
-const MoneyInput = ({ value, onChange, className }) => {
-  const [focus, setFocus] = useState(false);
-  const display = focus ? (value === 0 ? '' : value) : formatCurrency(value);
-  return (
-    <input
-      className={`${className} outline-none bg-transparent`}
-      value={display}
-      onChange={(e) => {
-        const val = e.target.value.replace(/\s/g, '');
-        onChange(val === '' ? 0 : isNaN(val) ? 0 : parseInt(val));
-      }}
-      onFocus={() => setFocus(true)}
-      onBlur={() => setFocus(false)}
-      placeholder="0"
-    />
-  );
-};
-
-// --- МОДАЛЬНЫЕ ОКНА ---
-
-const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
-  const [data, setData] = useState({ ...project });
-
-  return (
-    // FIX: overflow-y-auto и items-start для прокрутки на мобильных
-    <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-8">
-        <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
-          <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
-        </div>
-        
-        <div className="p-6">
-           <div className="bg-[#936142] p-5 rounded-2xl mb-6 text-white shadow-lg shadow-[#936142]/20">
-              <div className="flex justify-between items-start mb-2">
-                 <p className="text-xs font-bold uppercase tracking-widest opacity-80">Доступ для клиента</p>
-                 <LinkIcon size={16} className="opacity-80"/>
-              </div>
-              <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
-                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}?id=${project.id}`} readOnly />
-                 <button onClick={() => alert('Ссылка скопирована')}><Copy size={16}/></button>
-              </div>
-              <div>
-                 <p className="text-[10px] uppercase opacity-60 mb-1">Пароль</p>
-                 <input className="bg-transparent text-xl font-bold w-full outline-none" value={data.clientPassword || '1234'} onChange={e => setData({...data, clientPassword: e.target.value})} />
-              </div>
-           </div>
-
-           <div className="grid grid-cols-2 gap-4">
-              <Input label="Жених" value={data.groomName} onChange={e => setData({...data, groomName: e.target.value})} />
-              <Input label="Невеста" value={data.brideName} onChange={e => setData({...data, brideName: e.target.value})} />
-           </div>
-           <Input label="Организатор" value={data.organizerName} onChange={e => setData({...data, organizerName: e.target.value})} />
-           <div className="grid grid-cols-2 gap-4">
-              <Input label="Дата" type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} />
-              <Input label="Гостей" type="number" value={data.guestsCount} onChange={e => setData({...data, guestsCount: e.target.value})} />
-           </div>
-           <Input label="Локация" value={data.venueName} onChange={e => setData({...data, venueName: e.target.value})} />
-           <Input label="Адрес" value={data.venueAddress} onChange={e => setData({...data, venueAddress: e.target.value})} />
-        </div>
-
-        <div className="p-6 border-t border-[#EBE5E0] bg-[#F9F7F5] shrink-0 rounded-b-3xl space-y-3">
-           <Button className="w-full" onClick={() => onSave(data)}><Save size={18} /> Сохранить изменения</Button>
-           <div className="flex gap-3 pt-2">
-             <Button variant="outline" className="flex-1" onClick={() => onArchive(project.id)}><Archive size={18} /> {project.isArchived ? 'Вернуть' : 'В архив'}</Button>
-             <Button variant="danger" className="flex-1" onClick={() => onDelete(project.id)}><Trash2 size={18} /> Удалить</Button>
-           </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ProfileModal = ({ user, onClose, onSave }) => {
-    const [name, setName] = useState(user?.name || '');
-    const [email, setEmail] = useState(user?.email || '');
-    const [secret, setSecret] = useState(user?.secret || '');
-
-    return (
-        <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-8">
-                <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
-                <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
-                <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
-                <Input label="Email для входа" value={email} onChange={e => setEmail(e.target.value)} />
-                <div className="bg-[#F9F7F5] p-3 rounded-xl border border-[#AC8A69]/30 mb-6">
-                    <label className="block text-[10px] font-bold text-[#AC8A69] uppercase tracking-wider mb-2">Кодовое слово (для сброса)</label>
-                    <input className="bg-transparent w-full text-[#414942] outline-none" placeholder="Придумайте слово" value={secret} onChange={e => setSecret(e.target.value)} />
-                </div>
-                <Button className="w-full" onClick={() => onSave({ ...user, name, email, secret })}>Сохранить изменения</Button>
-            </div>
-        </div>
-    );
-};
+// --- UI VIEWS ---
 
 const OrganizersView = ({ team, onAdd, onDelete, onBack }) => {
     const [newName, setNewName] = useState('');
@@ -287,7 +330,83 @@ const OrganizersView = ({ team, onAdd, onDelete, onBack }) => {
     );
 };
 
-// --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
+const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
+  const [data, setData] = useState({ ...project });
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-10 min-h-min mb-20">
+        <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
+          <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
+          <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
+        </div>
+        
+        <div className="p-6">
+           <div className="bg-[#936142] p-5 rounded-2xl mb-6 text-white shadow-lg shadow-[#936142]/20">
+              <div className="flex justify-between items-start mb-2">
+                 <p className="text-xs font-bold uppercase tracking-widest opacity-80">Доступ для клиента</p>
+                 <LinkIcon size={16} className="opacity-80"/>
+              </div>
+              <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
+                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}/?id=${project.id}`} readOnly />
+                 <button onClick={() => alert('Ссылка скопирована (демо)')}><Copy size={16}/></button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <p className="text-[10px] uppercase opacity-60 mb-1">Пароль клиента</p>
+                    <input className="bg-transparent text-xl font-bold w-full outline-none" value={data.clientPassword || '1234'} onChange={e => setData({...data, clientPassword: e.target.value})} />
+                 </div>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <Input label="Жених" value={data.groomName} onChange={e => setData({...data, groomName: e.target.value})} />
+              <Input label="Невеста" value={data.brideName} onChange={e => setData({...data, brideName: e.target.value})} />
+           </div>
+           <Input label="Организатор" value={data.organizerName} onChange={e => setData({...data, organizerName: e.target.value})} />
+           <div className="grid grid-cols-2 gap-4">
+              <Input label="Дата" type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} />
+              <Input label="Гостей" type="number" value={data.guestsCount} onChange={e => setData({...data, guestsCount: e.target.value})} />
+           </div>
+           <Input label="Локация" value={data.venueName} onChange={e => setData({...data, venueName: e.target.value})} />
+           <Input label="Адрес" value={data.venueAddress} onChange={e => setData({...data, venueAddress: e.target.value})} />
+        </div>
+
+        <div className="p-6 border-t border-[#EBE5E0] bg-[#F9F7F5] shrink-0 rounded-b-3xl space-y-3">
+           <Button className="w-full" onClick={() => onSave(data)}><Save size={18} /> Сохранить изменения</Button>
+           <div className="flex gap-3 pt-2">
+             <Button variant="outline" className="flex-1" onClick={() => onArchive(project.id)}><Archive size={18} /> {project.isArchived ? 'Вернуть' : 'В архив'}</Button>
+             <Button variant="danger" className="flex-1" onClick={() => onDelete(project.id)}><Trash2 size={18} /> Удалить</Button>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProfileModal = ({ user, onClose, onSave }) => {
+    const [name, setName] = useState(user?.name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [secret, setSecret] = useState(user?.secret || '');
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-10">
+                <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
+                <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
+                <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
+                <Input label="Email для входа" value={email} onChange={e => setEmail(e.target.value)} />
+                <div className="bg-[#F9F7F5] p-3 rounded-xl border border-[#AC8A69]/30 mb-6">
+                    <label className="block text-[10px] font-bold text-[#AC8A69] uppercase tracking-wider mb-2">Секретное слово (для сброса)</label>
+                    <input className="bg-transparent w-full text-[#414942] outline-none" placeholder="Придумайте слово" value={secret} onChange={e => setSecret(e.target.value)} />
+                </div>
+                <Button className="w-full" onClick={() => onSave({ ...user, name, email, secret })}>Сохранить изменения</Button>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN APPLICATION ---
 
 export default function App() {
   const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('wedding_projects') || '[]'));
