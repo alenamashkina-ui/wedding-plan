@@ -2,21 +2,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Calendar, Clock, Users, DollarSign, CheckSquare, 
   Plus, Trash2, Download, ChevronLeft, Heart, 
-  MapPin, X, ArrowRight, CalendarDays, Menu, 
-  FileText, FileSpreadsheet, File, Settings, Archive, Save
+  MapPin, X, ArrowRight, CalendarDays, 
+  FileSpreadsheet, FileText, File, Settings, User, Link as LinkIcon, Save, Archive, Copy
 } from 'lucide-react';
 
-// --- DATA & CONFIGURATION ---
+// --- КОНФИГУРАЦИЯ ---
 
 const COLORS = {
   primary: '#936142',
   secondary: '#AC8A69',
-  accent: '#C58970',
-  neutral: '#CCBBA9',
-  dark: '#414942',
-  white: '#FFFFFF',
   bg: '#F9F7F5'
 };
+
+const SITE_URL = 'https://wedding-plan-phi.vercel.app'; // Ваша ссылка
 
 const INITIAL_EXPENSES = [
   { category: 'Декор', name: 'Декор и флористика', plan: 0, fact: 0, paid: 0, note: '' },
@@ -120,7 +118,8 @@ const INITIAL_FORM_STATE = {
   prepLocation: 'home',
   registrationType: 'official',
   venueName: '',
-  venueAddress: ''
+  venueAddress: '',
+  clientPassword: ''
 };
 
 // --- UTILS ---
@@ -131,7 +130,6 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('ru-RU', options);
 };
 
-// Helper for input date value (YYYY-MM-DD)
 const toInputDate = (dateStr) => {
   if (!dateStr) return '';
   return new Date(dateStr).toISOString().split('T')[0];
@@ -148,99 +146,86 @@ const formatCurrency = (val) => {
 };
 
 const downloadCSV = (data, filename) => {
-  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-    + data.map(e => e.join(";")).join("\n");
-  const encodedUri = encodeURI(csvContent);
+  const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + data.map(e => e.join(";")).join("\n");
   const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
+  link.href = encodeURI(csvContent);
+  link.download = filename;
   link.click();
-  document.body.removeChild(link);
 };
 
 // --- COMPONENTS ---
 
-const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight = "28px" }) => {
-  const textareaRef = useRef(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = minHeight;
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [value, minHeight]);
-
-  return (
-    <textarea
-      ref={textareaRef}
-      className={`${className} overflow-hidden resize-none block`}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={1}
-      style={{ minHeight: minHeight }}
-    />
-  );
-};
-
-const Card = ({ children, className = "", onClick, style }) => (
-  <div 
-    onClick={onClick}
-    style={style}
-    className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}
-  >
+const Card = ({ children, className = "", onClick }) => (
+  <div onClick={onClick} className={`bg-white rounded-2xl shadow-sm border border-[#EBE5E0] ${className} ${onClick ? 'cursor-pointer hover:border-[#AC8A69] transition-all' : ''}`}>
     {children}
   </div>
 );
 
-const Button = ({ children, onClick, variant = 'primary', className = "", ...props }) => {
-  const baseStyle = "px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 select-none transition-colors";
-  const variants = {
-    primary: `bg-[${COLORS.primary}] text-white hover:bg-[#7D5238] shadow-lg shadow-[${COLORS.primary}]/20`,
-    secondary: `bg-[${COLORS.neutral}]/20 text-[${COLORS.dark}] hover:bg-[${COLORS.neutral}]/30`,
-    outline: `border border-[${COLORS.secondary}] text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/5`,
-    ghost: `text-[${COLORS.primary}] hover:bg-[${COLORS.secondary}]/10`,
-    danger: `bg-red-50 text-red-500 hover:bg-red-100 border border-red-200`
-  };
-  
+const Button = ({ children, onClick, variant = 'primary', className = "" }) => {
+  const styles = variant === 'primary' 
+    ? "bg-[#936142] text-white hover:bg-[#7D5238] shadow-lg shadow-[#936142]/20" 
+    : variant === 'secondary'
+    ? "bg-[#CCBBA9]/20 text-[#414942] hover:bg-[#CCBBA9]/30"
+    : variant === 'danger'
+    ? "bg-red-50 text-red-500 border border-red-100 hover:bg-red-100"
+    : "border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/10";
   return (
-    <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+    <button onClick={onClick} className={`px-6 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${styles} ${className}`}>
       {children}
     </button>
   );
 };
 
-const DownloadMenu = ({ onSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
+const Input = ({ label, ...props }) => (
+  <div className="mb-4">
+    {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
+    <input className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none" {...props} />
+  </div>
+);
+
+const AutoResizeTextarea = ({ value, onChange, placeholder, className, minHeight = "28px" }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.height = minHeight;
+      ref.current.style.height = `${ref.current.scrollHeight}px`;
+    }
+  }, [value, minHeight]);
+  return (
+    <textarea ref={ref} className={`${className} overflow-hidden resize-none block`} value={value} onChange={onChange} placeholder={placeholder} rows={1} style={{ minHeight }} />
+  );
+};
+
+const MoneyInput = ({ value, onChange, className }) => {
+  const [focus, setFocus] = useState(false);
+  const display = focus ? (value === 0 ? '' : value) : formatCurrency(value);
+  return (
+    <input
+      className={`${className} outline-none bg-transparent`}
+      value={display}
+      onChange={(e) => {
+        const val = e.target.value.replace(/\s/g, '');
+        onChange(val === '' ? 0 : isNaN(val) ? 0 : parseInt(val));
+      }}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+      placeholder="0"
+    />
+  );
+};
+
+const DownloadMenu = ({ onExport }) => {
+  const [open, setOpen] = useState(false);
   return (
     <div className="relative print:hidden">
-      <Button variant="outline" onClick={() => setIsOpen(!isOpen)}>
-        <Download size={18} />
-      </Button>
-      {isOpen && (
+      <button onClick={() => setOpen(!open)} className="px-4 py-3 rounded-xl border border-[#AC8A69] text-[#936142] hover:bg-[#AC8A69]/5"><Download size={18}/></button>
+      {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
           <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-[#EBE5E0] z-20 w-48 overflow-hidden">
-            <button onClick={() => { onSelect('excel'); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors">
-              <div className="w-6 h-6 bg-green-100 text-green-600 rounded flex items-center justify-center">
-                <FileSpreadsheet size={14} />
-              </div>
-              Excel
-            </button>
-            <button onClick={() => { onSelect('csv'); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors">
-              <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center">
-                <FileText size={14} />
-              </div>
-              CSV
-            </button>
-            <button onClick={() => { onSelect('pdf'); setIsOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium flex items-center gap-3 transition-colors">
-              <div className="w-6 h-6 bg-red-100 text-red-600 rounded flex items-center justify-center">
-                <File size={14} />
-              </div>
-              PDF
-            </button>
+            {['excel', 'csv', 'pdf'].map(type => (
+              <button key={type} onClick={() => { onExport(type); setOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-[#F9F7F5] text-[#414942] text-sm font-medium uppercase">{type}</button>
+            ))}
           </div>
         </>
       )}
@@ -248,70 +233,39 @@ const DownloadMenu = ({ onSelect }) => {
   );
 };
 
-const Input = ({ label, ...props }) => (
-  <div className="mb-4">
-    {label && <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">{label}</label>}
-    <input 
-      className="w-full bg-[#F9F7F5] border-none rounded-xl p-4 text-[#414942] placeholder-[#CCBBA9] focus:ring-2 focus:ring-[#936142]/20 outline-none"
-      {...props}
-    />
-  </div>
-);
-
-const MoneyInput = ({ value, onChange, className }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const displayValue = isFocused 
-    ? (value === 0 ? '' : value) 
-    : formatCurrency(value);
-
-  const handleChange = (e) => {
-    const rawValue = e.target.value.replace(/\s/g, '');
-    if (rawValue === '') {
-      onChange(0);
-    } else if (!isNaN(rawValue)) {
-      onChange(parseInt(rawValue, 10));
-    }
-  };
-
-  return (
-    <input
-      type="text"
-      className={`${className} outline-none bg-transparent`}
-      value={displayValue}
-      onChange={handleChange}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      placeholder="0"
-    />
-  );
-};
-
-const Checkbox = ({ checked, onChange }) => (
-  <div 
-    onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
-    className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-colors duration-300 flex-shrink-0 print:border-[#414942] ${checked ? `bg-[${COLORS.primary}] border-[${COLORS.primary}] print:bg-[#414942]` : `border-[${COLORS.neutral}] bg-transparent`}`}
-  >
-    {checked && <CheckSquare size={14} color="white" />}
-  </div>
-);
-
 // --- MODALS ---
 
 const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
   const [data, setData] = useState({ ...project });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center sticky top-0 bg-white z-10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      {/* Центрирование и скролл внутри модалки, если она большая */}
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh] my-auto">
+        <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
-          <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
         </div>
         
-        <div className="p-6 space-y-4">
+        <div className="p-6 overflow-y-auto custom-scrollbar">
+           {/* Блок доступа клиента */}
+           <div className="bg-[#936142] p-5 rounded-2xl mb-6 text-white shadow-lg shadow-[#936142]/20">
+              <div className="flex justify-between items-start mb-2">
+                 <p className="text-xs font-bold uppercase tracking-widest opacity-80">Доступ для клиента</p>
+                 <LinkIcon size={16} className="opacity-80"/>
+              </div>
+              <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
+                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}?id=${project.id}`} readOnly />
+                 <button onClick={() => alert('Ссылка скопирована (демо)')}><Copy size={16}/></button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <p className="text-[10px] uppercase opacity-60 mb-1">Пароль</p>
+                    <input className="bg-transparent text-xl font-bold w-full outline-none" value={data.clientPassword} onChange={e => setData({...data, clientPassword: e.target.value})} />
+                 </div>
+              </div>
+           </div>
+
            <div className="grid grid-cols-2 gap-4">
               <Input label="Жених" value={data.groomName} onChange={e => setData({...data, groomName: e.target.value})} />
               <Input label="Невеста" value={data.brideName} onChange={e => setData({...data, brideName: e.target.value})} />
@@ -325,18 +279,11 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
            <Input label="Адрес" value={data.venueAddress} onChange={e => setData({...data, venueAddress: e.target.value})} />
         </div>
 
-        <div className="p-6 border-t border-[#EBE5E0] bg-[#F9F7F5] space-y-3">
-           <Button className="w-full" onClick={() => onSave(data)}>
-             <Save size={18} /> Сохранить изменения
-           </Button>
-           
+        <div className="p-6 border-t border-[#EBE5E0] bg-[#F9F7F5] shrink-0 rounded-b-3xl space-y-3">
+           <Button className="w-full" onClick={() => onSave(data)}><Save size={18} /> Сохранить изменения</Button>
            <div className="flex gap-3 pt-2">
-             <Button variant="outline" className="flex-1" onClick={() => onArchive(project.id)}>
-               <Archive size={18} /> {project.archived ? 'Вернуть' : 'В архив'}
-             </Button>
-             <Button variant="danger" className="flex-1" onClick={() => onDelete(project.id)}>
-               <Trash2 size={18} /> Удалить
-             </Button>
+             <Button variant="outline" className="flex-1" onClick={() => onArchive(project.id)}><Archive size={18} /> {project.isArchived ? 'Вернуть' : 'В архив'}</Button>
+             <Button variant="danger" className="flex-1" onClick={() => onDelete(project.id)}><Trash2 size={18} /> Удалить</Button>
            </div>
         </div>
       </div>
@@ -344,855 +291,269 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
   );
 };
 
-// --- SUB-VIEWS ---
+const ProfileModal = ({ user, onClose, onSave }) => {
+    const [name, setName] = useState(user?.name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [secret, setSecret] = useState(user?.secret || '');
 
-const TasksView = ({ tasks, updateProject, formatDate }) => {
-  const sortTasks = (taskList) => [...taskList].sort((a, b) => {
-    if (a.done === b.done) {
-        return new Date(a.deadline) - new Date(b.deadline);
-    }
-    return a.done ? 1 : -1;
-  });
-
-  const updateTask = (id, field, value) => {
-    const updatedList = tasks.map(t => t.id === id ? { ...t, [field]: value } : t);
-    if (field === 'done') {
-        updateProject('tasks', sortTasks(updatedList));
-    } else {
-        updateProject('tasks', updatedList);
-    }
-  };
-
-  const handleBlurSort = () => updateProject('tasks', sortTasks(tasks));
-
-  const addTask = () => {
-    const newTask = {
-      id: Math.random().toString(36).substr(2, 9),
-      text: 'Новая задача',
-      deadline: new Date().toISOString(),
-      done: false
-    };
-    updateProject('tasks', sortTasks([...tasks, newTask]));
-  };
-
-  const deleteTask = (id) => updateProject('tasks', tasks.filter(t => t.id !== id));
-
-  const handleExport = (type) => {
-    if (type === 'pdf') {
-      window.print();
-    } else {
-      const csvData = [
-        ["Задача", "Дедлайн", "Статус"],
-        ...tasks.map(t => [t.text, formatDate(t.deadline), t.done ? "Выполнено" : "В работе"])
-      ];
-      downloadCSV(csvData, "tasks.csv");
-    }
-  };
-
-  return (
-    <div className="space-y-6 pb-32">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
-        <h2 className="text-2xl font-serif text-[#414942]">Список задач</h2>
-        <div className="flex gap-2 w-full md:w-auto">
-           <Button variant="primary" onClick={addTask} className="flex-1 md:flex-none">
-            <Plus size={18} /> Добавить
-          </Button>
-          <DownloadMenu onSelect={handleExport} />
-        </div>
-      </div>
-
-      <div className="hidden print:block mb-8">
-        <h1 className="text-3xl font-serif text-[#414942] mb-2">Список задач</h1>
-        <p className="text-[#AC8A69]">Wed.Control</p>
-      </div>
-
-      <div className="grid gap-4">
-        {tasks.map((task) => {
-           const isOverdue = new Date(task.deadline) < new Date() && !task.done;
-           return (
-            <div key={task.id} className={`group flex flex-col md:flex-row md:items-start p-4 bg-white rounded-xl border transition-all hover:shadow-md gap-4 print:shadow-none print:border-b print:border-t-0 print:border-x-0 print:rounded-none print:p-2 ${task.done ? 'opacity-50 border-transparent' : 'border-[#EBE5E0]'}`}>
-              <div className="flex items-start flex-1 gap-4">
-                <div className="pt-1">
-                    <Checkbox 
-                    checked={task.done} 
-                    onChange={(checked) => updateTask(task.id, 'done', checked)} 
-                    />
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative">
+                <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
+                <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
+                <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
+                <Input label="Email для входа" value={email} onChange={e => setEmail(e.target.value)} />
+                <div className="bg-[#F9F7F5] p-3 rounded-xl border border-[#AC8A69]/30 mb-6">
+                    <label className="block text-[10px] font-bold text-[#AC8A69] uppercase tracking-wider mb-2">Кодовое слово (для сброса)</label>
+                    <input className="bg-transparent w-full text-[#414942] outline-none" placeholder="Придумайте слово" value={secret} onChange={e => setSecret(e.target.value)} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <AutoResizeTextarea
-                    className={`w-full font-medium text-base md:text-lg bg-transparent outline-none ${task.done ? 'line-through text-[#CCBBA9]' : 'text-[#414942]'}`}
-                    value={task.text}
-                    onChange={(e) => updateTask(task.id, 'text', e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between md:justify-end gap-4 pl-10 md:pl-0 w-full md:w-auto mt-2 md:mt-0">
-                <div className="flex items-center gap-2 text-[#AC8A69] bg-[#F9F7F5] px-3 py-1.5 rounded-lg w-full md:w-[160px] print:bg-transparent print:p-0 print:w-auto">
-                   <CalendarDays size={14} className="print:hidden"/>
-                   <input 
-                      type="date"
-                      className={`bg-transparent outline-none text-sm w-full cursor-pointer print:text-right ${isOverdue ? 'text-red-400 font-bold' : ''}`}
-                      value={toInputDate(task.deadline)}
-                      onChange={(e) => updateTask(task.id, 'deadline', e.target.value ? new Date(e.target.value).toISOString() : task.deadline)}
-                      onBlur={handleBlurSort}
-                   />
-                </div>
-                <button onClick={() => deleteTask(task.id)} className="text-[#CCBBA9] hover:text-red-400 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-2 print:hidden">
-                    <Trash2 size={18} />
-                </button>
-              </div>
+                <Button className="w-full" onClick={() => onSave({ name, email, secret })}>Сохранить изменения</Button>
             </div>
-          )
-        })}
-      </div>
-    </div>
-  );
-};
-
-const BudgetView = ({ expenses, updateProject, downloadCSV }) => {
-  const totals = expenses.reduce((acc, item) => ({
-    plan: acc.plan + Number(item.plan),
-    fact: acc.fact + Number(item.fact),
-    paid: acc.paid + Number(item.paid)
-  }), { plan: 0, fact: 0, paid: 0 });
-
-  const updateExpense = (index, field, val) => {
-    const newExpenses = [...expenses];
-    newExpenses[index][field] = val;
-    updateProject('expenses', newExpenses);
-  };
-
-  const addExpense = () => {
-    updateProject('expenses', [...expenses, { category: 'Новое', name: 'Новая статья', plan: 0, fact: 0, paid: 0, note: '' }]);
-  };
-
-  const removeExpense = (index) => {
-      const newExpenses = [...expenses];
-      newExpenses.splice(index, 1);
-      updateProject('expenses', newExpenses);
-  };
-
-  const handleExport = (type) => {
-    if (type === 'pdf') {
-      window.print();
-    } else {
-      const csvData = [
-        ["Наименование", "План", "Факт", "Внесено", "Остаток", "Комментарий"],
-        ...expenses.map(e => [e.name, e.plan, e.fact, e.paid, e.fact - e.paid, e.note || '']),
-        ["ИТОГО", totals.plan, totals.fact, totals.paid, totals.fact - totals.paid, ""]
-      ];
-      downloadCSV(csvData, "budget.csv");
-    }
-  };
-
-  return (
-    <div className="pb-32">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 print:hidden">
-        <Card className="p-4 md:p-6 text-center">
-          <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">План</p>
-          <p className="text-lg md:text-2xl font-medium text-[#414942]">{formatCurrency(totals.plan)}</p>
-        </Card>
-        <Card className="p-4 md:p-6 text-center">
-          <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">Факт</p>
-          <p className="text-lg md:text-2xl font-medium text-[#414942]">{formatCurrency(totals.fact)}</p>
-        </Card>
-        <Card className="p-4 md:p-6 text-center">
-           <p className="text-[#AC8A69] text-[10px] md:text-xs uppercase tracking-widest mb-2">Внесено</p>
-           <p className="text-lg md:text-2xl font-medium text-[#936142]">{formatCurrency(totals.paid)}</p>
-        </Card>
-        <div className="bg-[#414942] rounded-2xl shadow-sm border border-[#EBE5E0] p-4 md:p-6 text-center">
-           <p className="text-[10px] md:text-xs uppercase tracking-widest mb-2 text-white/60">Остаток</p>
-           <p className="text-lg md:text-2xl font-medium text-white">{formatCurrency(totals.fact - totals.paid)}</p>
         </div>
-      </div>
-
-      <div className="hidden print:block mb-8">
-        <h1 className="text-3xl font-serif text-[#414942] mb-2">Смета проекта</h1>
-        <div className="flex justify-between border-b pb-2 border-[#AC8A69]">
-           <p>План: {formatCurrency(totals.plan)}</p>
-           <p>Факт: {formatCurrency(totals.fact)}</p>
-           <p>Внесено: {formatCurrency(totals.paid)}</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-[#EBE5E0] overflow-hidden print:shadow-none print:border-none">
-          <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[800px] print:min-w-0">
-                  <thead>
-                  <tr className="bg-[#F9F7F5] text-[#936142] text-xs uppercase tracking-wider print:bg-transparent print:border-b print:border-[#414942]">
-                      <th className="p-2 md:p-4 font-semibold">Статья</th>
-                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">План</th>
-                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Факт</th>
-                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Внесено</th>
-                      <th className="p-2 md:p-4 font-semibold w-24 md:w-32">Остаток</th>
-                      <th className="p-2 md:p-4 font-semibold w-48">Комментарий</th>
-                      <th className="p-2 md:p-4 font-semibold w-10 print:hidden"></th>
-                  </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EBE5E0] print:divide-[#CCBBA9]">
-                  {expenses.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-[#F9F7F5]/50 group print:break-inside-avoid">
-                      <td className="p-2 md:p-4 align-top">
-                          <AutoResizeTextarea
-                            className="w-full bg-transparent outline-none font-medium text-[#414942]"
-                            value={item.name} 
-                            onChange={(e) => updateExpense(idx, 'name', e.target.value)}
-                            minHeight="24px"
-                          />
-                      </td>
-                      <td className="p-2 md:p-4 align-top">
-                          <MoneyInput 
-                            value={item.plan} 
-                            onChange={(val) => updateExpense(idx, 'plan', val)}
-                            className="w-full text-[#414942]" 
-                          />
-                      </td>
-                      <td className="p-2 md:p-4 align-top">
-                          <MoneyInput 
-                            value={item.fact} 
-                            onChange={(val) => updateExpense(idx, 'fact', val)}
-                            className="w-full text-[#414942]" 
-                          />
-                      </td>
-                      <td className="p-2 md:p-4 align-top">
-                          <MoneyInput 
-                            value={item.paid} 
-                            onChange={(val) => updateExpense(idx, 'paid', val)}
-                            className="w-full text-[#414942]" 
-                          />
-                      </td>
-                      <td className="p-2 md:p-4 align-top text-[#AC8A69]">
-                          {formatCurrency(item.fact - item.paid)}
-                      </td>
-                      <td className="p-2 md:p-4 align-top">
-                          <AutoResizeTextarea
-                            className="w-full bg-transparent outline-none text-xs text-[#AC8A69] placeholder-[#CCBBA9]"
-                            placeholder="..."
-                            value={item.note || ''} 
-                            onChange={(e) => updateExpense(idx, 'note', e.target.value)} 
-                            minHeight="40px"
-                          />
-                      </td>
-                      <td className="p-2 md:p-4 align-top print:hidden">
-                          <button onClick={() => removeExpense(idx)} className="text-red-300 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                              <Trash2 size={16} />
-                          </button>
-                      </td>
-                      </tr>
-                  ))}
-                  </tbody>
-              </table>
-          </div>
-      </div>
-
-      <div className="flex flex-row items-center gap-2 mt-6 print:hidden">
-          <Button onClick={addExpense} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить статью</Button>
-          <DownloadMenu onSelect={handleExport} />
-      </div>
-    </div>
-  );
+    );
 };
 
-const GuestsView = ({ guests, updateProject, downloadCSV }) => {
-  const addGuest = () => {
-      updateProject('guests', [...guests, { 
-          id: Date.now(), name: '', comment: '', seatingName: '', table: '', food: '', drinks: '', transfer: false 
-      }]);
-  };
+const TeamView = ({ team, onAdd, onDelete, onBack }) => {
+    const [newName, setNewName] = useState('');
+    const [newEmail, setNewEmail] = useState('');
 
-  const updateGuest = (id, field, val) => {
-      const newGuests = guests.map(g => g.id === id ? { ...g, [field]: val } : g);
-      updateProject('guests', newGuests);
-  };
-
-  const removeGuest = (id) => {
-      updateProject('guests', guests.filter(g => g.id !== id));
-  };
-
-  const handleExport = (type) => {
-    if (type === 'pdf') {
-      window.print();
-    } else {
-      const csvData = [
-        ["ФИО", "Рассадка", "Стол", "Еда", "Напитки", "Трансфер", "Комментарий"],
-        ...guests.map(g => [g.name, g.seatingName, g.table, g.food, g.drinks, g.transfer ? "Да" : "Нет", g.comment])
-      ];
-      downloadCSV(csvData, "guests.csv");
-    }
-  };
-
-  return (
-      <div className="pb-32 md:pb-0">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 print:hidden">
-              <div className="flex items-baseline gap-4">
-                  <h2 className="text-2xl font-serif text-[#414942]">Список гостей</h2>
-                  <span className="text-[#AC8A69] font-medium">{guests.length} персон</span>
-              </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <Button onClick={addGuest} variant="primary" className="flex-1 md:flex-none"><Plus size={18}/> Добавить</Button>
-                <DownloadMenu onSelect={handleExport} />
-              </div>
-          </div>
-
-          <div className="hidden print:block mb-8">
-            <h1 className="text-3xl font-serif text-[#414942]">Список гостей</h1>
-            <p className="text-[#AC8A69] mb-4">Всего персон: {guests.length}</p>
-          </div>
-          
-          {/* ТАБЛИЦА ДЛЯ ПЕЧАТИ (ВИДНА ТОЛЬКО ПРИ window.print) */}
-          <div className="hidden print:block w-full">
-            <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                    <tr className="border-b-2 border-black">
-                        <th className="py-2">ФИО</th>
-                        <th className="py-2">Стол</th>
-                        <th className="py-2">Еда/Напитки</th>
-                        <th className="py-2">Трансфер</th>
-                        <th className="py-2">Комментарий</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {guests.map((g, i) => (
-                        <tr key={g.id} className="border-b border-gray-300 break-inside-avoid">
-                            <td className="py-2 pr-2">
-                                <div className="font-bold">{g.name}</div>
-                                <div className="text-xs text-gray-500">{g.seatingName}</div>
-                            </td>
-                            <td className="py-2 pr-2">{g.table}</td>
-                            <td className="py-2 pr-2">
-                                {g.food && <div>{g.food}</div>}
-                                {g.drinks && <div>{g.drinks}</div>}
-                            </td>
-                            <td className="py-2 pr-2">{g.transfer ? 'Да' : ''}</td>
-                            <td className="py-2 text-xs italic">{g.comment}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-          </div>
-
-          {/* ОБЫЧНЫЙ ВИД (СКРЫТ ПРИ ПЕЧАТИ) */}
-          <div className="grid gap-4 print:hidden">
-              {guests.map((guest, idx) => (
-                  <Card key={guest.id} className="p-6 transition-all hover:shadow-md">
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                          <div className="flex items-center justify-between w-full md:w-auto md:col-span-1 md:justify-center md:h-full">
-                              <span className="w-8 h-8 rounded-full bg-[#CCBBA9]/30 text-[#936142] flex items-center justify-center font-bold text-sm">
-                                  {idx + 1}
-                              </span>
-                              <button onClick={() => removeGuest(guest.id)} className="md:hidden text-[#CCBBA9] hover:text-red-400 transition-colors print:hidden">
-                                  <Trash2 size={18}/>
-                              </button>
-                          </div>
-                          
-                          <div className="w-full md:col-span-3">
-                              <label className="text-[10px] uppercase text-[#CCBBA9] font-bold">ФИО</label>
-                              <input 
-                                className="w-full text-lg font-medium text-[#414942] bg-transparent border-b border-transparent focus:border-[#AC8A69] outline-none" 
-                                placeholder="Имя гостя"
-                                value={guest.name}
-                                onChange={(e) => updateGuest(guest.id, 'name', e.target.value)}
-                              />
-                                <input 
-                                className="w-full text-sm text-[#AC8A69] bg-transparent outline-none mt-1" 
-                                placeholder="Имя на рассадке"
-                                value={guest.seatingName}
-                                onChange={(e) => updateGuest(guest.id, 'seatingName', e.target.value)}
-                              />
-                          </div>
-
-                          <div className="w-1/2 md:w-full md:col-span-2">
-                              <label className="text-[10px] uppercase text-[#CCBBA9] font-bold">Стол №</label>
-                              <input 
-                                className="w-full bg-transparent border-b border-[#EBE5E0] focus:border-[#AC8A69] outline-none py-1"
-                                value={guest.table}
-                                onChange={(e) => updateGuest(guest.id, 'table', e.target.value)}
-                              />
-                          </div>
-
-                          <div className="w-full md:col-span-3">
-                            <label className="text-[10px] uppercase text-[#CCBBA9] font-bold">Пожелания</label>
-                            <input 
-                                className="w-full text-sm bg-transparent border-b border-[#EBE5E0] outline-none py-1 mb-1"
-                                placeholder="Еда..."
-                                value={guest.food}
-                                onChange={(e) => updateGuest(guest.id, 'food', e.target.value)}
-                              />
-                              <input 
-                                className="w-full text-sm bg-transparent border-b border-[#EBE5E0] outline-none py-1"
-                                placeholder="Напитки..."
-                                value={guest.drinks}
-                                onChange={(e) => updateGuest(guest.id, 'drinks', e.target.value)}
-                              />
-                          </div>
-                          
-                          <div className="w-full md:col-span-2 flex items-center gap-2 pt-4">
-                              <label className="flex items-center cursor-pointer select-none">
-                                  <div className={`w-5 h-5 rounded border flex items-center justify-center mr-2 ${guest.transfer ? 'bg-[#936142] border-[#936142]' : 'border-[#CCBBA9]'}`}>
-                                      {guest.transfer && <CheckSquare size={12} color="white"/>}
-                                  </div>
-                                  <input type="checkbox" className="hidden" checked={guest.transfer} onChange={(e) => updateGuest(guest.id, 'transfer', e.target.checked)} />
-                                  <span className="text-sm text-[#414942]">Трансфер</span>
-                              </label>
-                          </div>
-
-                          <div className="hidden md:flex md:col-span-1 justify-end pt-4 print:hidden">
-                              <button onClick={() => removeGuest(guest.id)} className="text-[#CCBBA9] hover:text-red-400 transition-colors">
-                                  <Trash2 size={18}/>
-                              </button>
-                          </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-[#F9F7F5]">
-                            <AutoResizeTextarea
-                                className="w-full text-sm text-[#414942] italic bg-transparent outline-none"
-                                placeholder="Заметки к гостю..."
-                                value={guest.comment}
-                                onChange={(e) => updateGuest(guest.id, 'comment', e.target.value)}
-                              />
-                      </div>
-                  </Card>
-              ))}
-          </div>
-      </div>
-  )
-};
-
-const TimingView = ({ timing, updateProject, downloadCSV }) => {
-  const sortTiming = (list) => [...list].sort((a, b) => a.time.localeCompare(b.time));
-
-  const updateTimingItem = (id, field, value) => {
-    const newTiming = timing.map(t => t.id === id ? { ...t, [field]: value } : t);
-    updateProject('timing', newTiming);
-  };
-
-  const handleBlurSort = () => updateProject('timing', sortTiming(timing));
-
-  const removeTimingItem = (id) => updateProject('timing', timing.filter(t => t.id !== id));
-
-  const addTimingItem = () => {
-    const newItem = { id: Math.random().toString(36).substr(2, 9), time: '00:00', event: 'Новый этап' };
-    updateProject('timing', sortTiming([...timing, newItem]));
-  };
-
-  const handleExport = (type) => {
-    if (type === 'pdf') {
-      window.print();
-    } else {
-      const csvData = [
-        ["Время", "Событие"],
-        ...timing.map(t => [t.time, t.event])
-      ];
-      downloadCSV(csvData, "timing.csv");
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto pb-32">
-      <div className="flex justify-end mb-4 print:hidden">
-          <DownloadMenu onSelect={handleExport} />
-      </div>
-      
-      <div className="hidden print:block mb-8">
-        <h1 className="text-3xl font-serif text-[#414942] mb-2">Тайминг дня</h1>
-      </div>
-
-        <div className="relative border-l border-[#EBE5E0] ml-4 md:ml-6 space-y-6 print:border-none print:ml-0 print:space-y-2">
-            {timing.map((item) => (
-                <div key={item.id} className="relative pl-6 group print:pl-0 print:border-b print:pb-2 print:border-[#EBE5E0]">
-                    <div className="absolute -left-[5px] top-2 w-2.5 h-2.5 rounded-full bg-white border-2 border-[#AC8A69] transition-all group-hover:scale-125 group-hover:border-[#936142] print:hidden"></div>
-                    <div className="flex items-baseline gap-4">
-                          <input 
-                            className="w-14 md:w-16 text-base md:text-lg font-bold text-[#936142] bg-transparent outline-none text-right font-mono print:text-left print:w-20"
-                            value={item.time}
-                            onChange={(e) => updateTimingItem(item.id, 'time', e.target.value)}
-                            onBlur={handleBlurSort}
-                          />
-                          <input 
-                            className="flex-1 text-sm md:text-base text-[#414942] bg-transparent outline-none border-b border-transparent focus:border-[#AC8A69] pb-1 transition-colors"
-                            value={item.event}
-                            onChange={(e) => updateTimingItem(item.id, 'event', e.target.value)}
-                          />
-                          <button 
-                            onClick={() => removeTimingItem(item.id)}
-                            className="opacity-0 group-hover:opacity-100 text-[#CCBBA9] hover:text-red-400 p-1 print:hidden"
-                          >
-                              <X size={14}/>
-                          </button>
+    return (
+        <div className="min-h-screen bg-[#F9F7F5] p-6 md:p-12 font-[Montserrat]">
+            <button onClick={onBack} className="flex items-center gap-2 text-[#AC8A69] hover:text-[#936142] mb-8 font-medium"><ChevronLeft/> Назад</button>
+            <div className="max-w-4xl mx-auto">
+                <h2 className="text-3xl font-bold text-[#414942] mb-8">Команда</h2>
+                <Card className="p-6 mb-8">
+                    <h3 className="font-bold text-[#936142] mb-4">Добавить организатора</h3>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 flex-1 outline-none" placeholder="Имя" value={newName} onChange={e => setNewName(e.target.value)} />
+                        <input className="bg-[#F9F7F5] border-none rounded-xl p-3 flex-1 outline-none" placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+                        <Button onClick={() => { onAdd({ id: Date.now(), name: newName, email: newEmail }); setNewName(''); setNewEmail(''); }}>Добавить</Button>
                     </div>
+                </Card>
+                <div className="space-y-4">
+                    {team.map(member => (
+                        <div key={member.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
+                            <div>
+                                <p className="font-bold text-[#414942]">{member.name}</p>
+                                <p className="text-xs text-[#AC8A69]">{member.email}</p>
+                            </div>
+                            <button onClick={() => onDelete(member.id)} className="text-red-300 hover:text-red-500 p-2"><Trash2 size={18}/></button>
+                        </div>
+                    ))}
+                    {team.length === 0 && <p className="text-center text-[#CCBBA9]">В команде пока только вы.</p>}
                 </div>
-            ))}
-            <div className="relative pl-6 pt-2 print:hidden">
-                <button 
-                  onClick={addTimingItem}
-                  className="flex items-center gap-2 text-[#AC8A69] hover:text-[#936142] text-xs font-medium transition-colors"
-                >
-                    <div className="w-4 h-4 rounded-full border border-current flex items-center justify-center"><Plus size={10}/></div>
-                    Добавить этап
-                </button>
             </div>
         </div>
-    </div>
-  );
+    );
 };
 
-const NotesView = ({ notes, updateProject }) => (
-  <div className="h-full flex flex-col pb-32">
-      <textarea 
-          className="flex-1 w-full bg-white p-8 rounded-2xl shadow-sm border border-[#EBE5E0] text-[#414942] leading-relaxed resize-none focus:ring-2 focus:ring-[#936142]/10 outline-none min-h-[50vh] print:shadow-none print:border-none print:p-0"
-          placeholder="Место для важных мыслей, черновиков клятв и идей..."
-          value={notes}
-          onChange={(e) => updateProject('notes', e.target.value)}
-      />
-  </div>
-);
-
-// --- MAIN APPLICATION ---
+// --- ОСНОВНОЕ ПРИЛОЖЕНИЕ ---
 
 export default function App() {
-  const [projects, setProjects] = useState(() => {
-    const saved = localStorage.getItem('wedding_projects');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [projects, setProjects] = useState(() => JSON.parse(localStorage.getItem('wedding_projects') || '[]'));
+  const [team, setTeam] = useState(() => JSON.parse(localStorage.getItem('wedding_team') || '[]'));
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('wedding_user') || '{"name":"Владелец","email":"owner@wed.control"}'));
   
   const [currentProject, setCurrentProject] = useState(null);
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState('dashboard'); // 'dashboard', 'create', 'project', 'team'
   const [activeTab, setActiveTab] = useState('overview');
   const [dashboardTab, setDashboardTab] = useState('active'); // 'active' | 'archived'
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
-  useEffect(() => {
-    localStorage.setItem('wedding_projects', JSON.stringify(projects));
-  }, [projects]);
+  useEffect(() => localStorage.setItem('wedding_projects', JSON.stringify(projects)), [projects]);
+  useEffect(() => localStorage.setItem('wedding_team', JSON.stringify(team)), [team]);
+  useEffect(() => localStorage.setItem('wedding_user', JSON.stringify(user)), [user]);
 
-  const handleCreateProject = () => {
+  // SCROLL FIX: Обычный браузерный скролл
+  
+  const updateProject = (field, value) => {
+    setCurrentProject(prev => {
+      const updated = { ...prev, [field]: value };
+      setProjects(list => list.map(p => p.id === updated.id ? updated : p));
+      return updated;
+    });
+  };
+
+  const createProject = () => {
     const creationDate = new Date();
     const weddingDate = new Date(formData.date);
     const totalTime = weddingDate - creationDate;
 
     let projectTasks = TASK_TEMPLATES.map(t => {
-      const deadline = new Date(creationDate.getTime() + totalTime * t.pos);
-      return {
-        id: Math.random().toString(36).substr(2, 9),
-        text: t.text,
-        deadline: deadline.toISOString(),
-        done: false
-      };
+        const deadline = new Date(creationDate.getTime() + totalTime * t.pos);
+        return { id: Math.random().toString(36).substr(2, 9), text: t.text, deadline: deadline.toISOString(), done: false };
     });
 
-    // Conditional Tasks & Expenses
-    let projectExpenses = [...INITIAL_EXPENSES];
-    
-    if (formData.prepLocation === 'hotel') {
-      projectTasks.push({ id: 'hotel_1', text: 'Забронировать номер в отеле', deadline: new Date(creationDate.getTime() + totalTime * 0.2).toISOString(), done: false });
-      projectExpenses.push({ category: 'Логистика', name: 'Номер в отеле', plan: 0, fact: 0, paid: 0, note: '' });
+    // Назначаем имя организатора из списка или текущего юзера
+    let orgName = user.name;
+    if (formData.organizerName && formData.organizerName !== 'owner') {
+        const member = team.find(m => m.id.toString() === formData.organizerName);
+        if (member) orgName = member.name;
     }
-
-    if (formData.registrationType === 'offsite') {
-      projectTasks.push({ id: 'reg_1', text: 'Выбрать регистратора', deadline: new Date(creationDate.getTime() + totalTime * 0.25).toISOString(), done: false });
-      projectTasks.push({ id: 'reg_2', text: 'Выбрать место проведения выездной регистрации', deadline: new Date(creationDate.getTime() + totalTime * 0.12).toISOString(), done: false });
-      projectTasks.push({ id: 'reg_3', text: 'Утвердить сценарий и речь церемонии', deadline: new Date(creationDate.getTime() + totalTime * 0.42).toISOString(), done: false });
-      projectTasks.push({ id: 'reg_4', text: 'Сочинить клятвы', deadline: new Date(creationDate.getTime() + totalTime * 0.42).toISOString(), done: false });
-      projectExpenses.push({ category: 'Программа', name: 'Регистратор', plan: 0, fact: 0, paid: 0, note: '' });
-    }
-
-    projectTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-    
-    // Assign IDs to initial timing
-    const projectTiming = INITIAL_TIMING.map(t => ({
-      ...t,
-      id: Math.random().toString(36).substr(2, 9)
-    }));
 
     const newProject = {
       id: Date.now(),
       ...formData,
-      status: 'active', // 'active' | 'archived'
-      tasks: projectTasks,
-      expenses: projectExpenses,
-      timing: projectTiming,
-      guests: [],
-      notes: ''
+      organizerName: orgName,
+      clientPassword: Math.floor(1000 + Math.random() * 9000).toString(),
+      isArchived: false,
+      tasks: projectTasks, expenses: INITIAL_EXPENSES, guests: [], timing: INITIAL_TIMING.map(t=>({...t, id: Math.random().toString(36).substr(2,9)})), notes: ''
     };
-
     setProjects([...projects, newProject]);
     setCurrentProject(newProject);
     setView('project');
-    setActiveTab('overview');
   };
 
-  const updateProject = useCallback((field, value) => {
-    setCurrentProject(prev => {
-      const updated = { ...prev, [field]: value };
-      setProjects(projList => projList.map(p => p.id === updated.id ? updated : p));
-      return updated;
-    });
-  }, []);
-
-  const saveProjectDetails = (updatedData) => {
-    setCurrentProject(updatedData);
-    setProjects(projList => projList.map(p => p.id === updatedData.id ? updatedData : p));
-    setIsSettingsOpen(false);
-  };
-
-  const toggleArchive = (id) => {
-    const project = projects.find(p => p.id === id);
-    const newStatus = project.status === 'archived' ? 'active' : 'archived';
-    
-    // Update local state and current project
-    const updatedProjects = projects.map(p => p.id === id ? { ...p, status: newStatus } : p);
-    setProjects(updatedProjects);
-    
-    if (currentProject && currentProject.id === id) {
-        setCurrentProject({ ...currentProject, status: newStatus });
-    }
-    setIsSettingsOpen(false);
-    
-    // If archiving from inside project view, go back to dashboard
-    if (newStatus === 'archived') {
-        setView('dashboard');
+  const exportData = (type, data, filename) => {
+    if (type === 'pdf') window.print();
+    else {
+      const csv = "data:text/csv;charset=utf-8,\uFEFF" + data.map(e => e.join(";")).join("\n");
+      const link = document.createElement("a");
+      link.href = encodeURI(csv);
+      link.download = filename;
+      link.click();
     }
   };
 
-  const deleteProject = (id) => {
-    if (window.confirm('Вы уверены, что хотите удалить этот проект? Это действие нельзя отменить.')) {
-        setProjects(projects.filter(p => p.id !== id));
-        setCurrentProject(null);
-        setView('dashboard');
-        setIsSettingsOpen(false);
-    }
-  };
+  if (view === 'team') {
+      return <TeamView team={team} onBack={() => setView('dashboard')} onAdd={(m) => setTeam([...team, m])} onDelete={(id) => setTeam(team.filter(t => t.id !== id))} />;
+  }
 
-  const sortedProjects = [...projects]
-    .filter(p => (p.status || 'active') === dashboardTab)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  // --- RENDER LAYOUT ---
-  // ВАЖНО: Весь контент теперь в специальном контейнере для скролла
-  
-  return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden touch-pan-y">
-      
-      {/* GLOBAL SETTINGS MODAL */}
-      {isSettingsOpen && currentProject && (
-        <SettingsModal 
-            project={currentProject} 
-            onClose={() => setIsSettingsOpen(false)}
-            onSave={saveProjectDetails}
-            onDelete={deleteProject}
-            onArchive={toggleArchive}
-        />
-      )}
-
-      {view === 'dashboard' && (
-        <div className="max-w-6xl mx-auto p-6 md:p-12 pb-32">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-16 gap-4 md:gap-0">
+  if (view === 'dashboard') {
+    const filteredProjects = projects.filter(p => dashboardTab === 'active' ? !p.isArchived : p.isArchived);
+    return (
+      <div className="min-h-screen bg-[#F9F7F5] p-6 md:p-12 pb-32 font-[Montserrat]">
+        <div className="max-w-6xl mx-auto">
+          {isProfileOpen && <ProfileModal user={user} onClose={() => setIsProfileOpen(false)} onSave={(u) => { setUser(u); setIsProfileOpen(false); }} />}
+          
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
             <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-[#414942] tracking-tight">Wed.Control</h1>
-                <p className="text-[#AC8A69] mt-2">Эстетика планирования</p>
+                <button onClick={() => setIsProfileOpen(true)} className="text-[#AC8A69] mt-2 hover:text-[#936142] flex items-center gap-2">Кабинет: {user.name} <Settings size={14}/></button>
             </div>
-            <Button onClick={() => {
-               setFormData(INITIAL_FORM_STATE);
-               setView('create');
-            }} className="w-full md:w-auto">
-               <Plus size={20}/> Новый проект
-            </Button>
+            <div className="flex gap-2 w-full md:w-auto">
+                <Button onClick={() => { setFormData(INITIAL_FORM_STATE); setView('create'); }}><Plus size={20}/> Новый проект</Button>
+                <Button variant="secondary" onClick={() => setView('team')}><Users size={20}/> Команда</Button>
+            </div>
           </header>
 
           <div className="flex gap-4 mb-8 border-b border-[#EBE5E0]">
-             <button 
-                onClick={() => setDashboardTab('active')}
-                className={`pb-3 px-1 text-sm font-medium transition-colors ${dashboardTab === 'active' ? 'text-[#936142] border-b-2 border-[#936142]' : 'text-[#CCBBA9] hover:text-[#414942]'}`}
-             >
-                Активные
-             </button>
-             <button 
-                onClick={() => setDashboardTab('archived')}
-                className={`pb-3 px-1 text-sm font-medium transition-colors ${dashboardTab === 'archived' ? 'text-[#936142] border-b-2 border-[#936142]' : 'text-[#CCBBA9] hover:text-[#414942]'}`}
-             >
-                Архив
-             </button>
+             <button onClick={() => setDashboardTab('active')} className={`pb-3 px-1 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${dashboardTab === 'active' ? 'border-[#936142] text-[#936142]' : 'border-transparent text-[#CCBBA9]'}`}>Активные</button>
+             <button onClick={() => setDashboardTab('archived')} className={`pb-3 px-1 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${dashboardTab === 'archived' ? 'border-[#936142] text-[#936142]' : 'border-transparent text-[#CCBBA9]'}`}>Архив</button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {sortedProjects.map(p => (
-              <div 
-                key={p.id} 
-                onClick={() => { setCurrentProject(p); setView('project'); setActiveTab('overview'); }}
-                className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Heart size={64} className="text-[#936142] fill-current"/>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {filteredProjects.map(p => (
+              <div key={p.id} onClick={() => { setCurrentProject(p); setView('project'); }} className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer group border border-[#EBE5E0] hover:border-[#AC8A69]/30 relative overflow-hidden">
+                <Heart size={64} className="absolute top-4 right-4 text-[#936142] opacity-10 group-hover:opacity-20 transition-opacity"/>
                 <div className="relative z-10">
                     <p className="text-xs font-bold text-[#AC8A69] uppercase tracking-widest mb-3">{formatDate(p.date)}</p>
-                    <h3 className="text-2xl font-serif text-[#414942] mb-1 leading-tight">
-                        {p.groomName} <span className="text-[#AC8A69]">&</span> {p.brideName}
-                    </h3>
+                    <h3 className="text-2xl font-serif text-[#414942] mb-1">{p.groomName} <span className="text-[#AC8A69]">&</span> {p.brideName}</h3>
                     <p className="text-[#CCBBA9] text-sm mb-6">{p.venueName || 'Локация не выбрана'}</p>
-                    {p.organizerName && <p className="text-[#AC8A69] text-xs font-medium">Org: {p.organizerName}</p>}
-
                     <div className="flex items-center justify-between mt-8 border-t border-[#F9F7F5] pt-4">
-                        <span className="text-[#936142] group-hover:translate-x-1 transition-transform">
-                            <ArrowRight size={20}/>
-                        </span>
+                        <div><p className="text-[10px] text-[#CCBBA9] uppercase">Организатор</p><p className="text-xs text-[#AC8A69] font-bold">{p.organizerName || 'Владелец'}</p></div>
+                        <span className="text-[#936142] group-hover:translate-x-1 transition-transform"><ArrowRight size={20}/></span>
                     </div>
                 </div>
               </div>
             ))}
-            
-            {sortedProjects.length === 0 && (
-                <div className="col-span-full text-center py-20 text-[#CCBBA9]">
-                    <p className="text-xl">В этом разделе пока пусто.</p>
-                </div>
-            )}
+            {filteredProjects.length === 0 && <div className="col-span-full text-center py-20 text-[#CCBBA9]"><p className="text-xl">Здесь пока пусто.</p></div>}
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {view === 'create' && (
-        <div className="flex items-center justify-center p-6 pb-32 min-h-full">
-          <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
-            <div className="flex items-center mb-8">
-              <button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]">
-                  <ChevronLeft size={24}/>
+  if (view === 'create') {
+    return (
+      <div className="min-h-screen bg-[#F9F7F5] flex items-center justify-center p-6 font-[Montserrat] pb-32">
+        <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
+          <div className="flex items-center mb-8"><button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={24}/></button><h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2></div>
+          <div className="space-y-6">
+            <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
+                <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
+                <div className="mb-4">
+                    <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">Ответственный организатор</label>
+                    <select className="w-full bg-white border-none rounded-xl p-4 text-[#414942] outline-none" value={formData.organizerName} onChange={e => setFormData({...formData, organizerName: e.target.value})}>
+                        <option value="owner">Владелец (Я)</option>
+                        {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} /><Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} /></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Дата свадьбы" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /><Input label="Гостей" type="number" placeholder="50" value={formData.guestsCount} onChange={e => setFormData({...formData, guestsCount: e.target.value})} /></div>
+            </div>
+            <div className="grid grid-cols-1 gap-4"><Input label="Локация" placeholder="Название ресторана / отеля" value={formData.venueName} onChange={e => setFormData({...formData, venueName: e.target.value})} /><Input label="Адрес" placeholder="Улица, дом" value={formData.venueAddress} onChange={e => setFormData({...formData, venueAddress: e.target.value})} /></div>
+            <Button onClick={createProject} className="w-full mt-4">Создать проект</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (view === 'project' && currentProject) {
+    const expensesSum = currentProject.expenses.reduce((acc, i) => ({ plan: acc.plan + Number(i.plan), fact: acc.fact + Number(i.fact), paid: acc.paid + Number(i.paid) }), { plan: 0, fact: 0, paid: 0 });
+    
+    return (
+      <div className="min-h-screen bg-[#F9F7F5] font-[Montserrat]">
+        {isSettingsOpen && <SettingsModal 
+            project={currentProject} 
+            onClose={() => setIsSettingsOpen(false)} 
+            onSave={(data) => { updateProject(null, data); setIsSettingsOpen(false); setCurrentProject(data); }}
+            onDelete={(id) => { setProjects(projects.filter(p => p.id !== id)); setView('dashboard'); setIsSettingsOpen(false); }}
+            onArchive={(id) => { const p = projects.find(x => x.id === id); p.isArchived = !p.isArchived; setProjects([...projects]); setView('dashboard'); setIsSettingsOpen(false); }}
+        />}
+
+        <nav className="sticky top-0 bg-white/90 backdrop-blur border-b border-[#EBE5E0] z-50 px-6 h-16 flex items-center justify-between print:hidden">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('dashboard')}><ChevronLeft className="text-[#AC8A69]"/></button>
+            <span className="font-bold text-[#936142] hidden md:block">Wed.Control</span>
+          </div>
+          <div className="flex gap-1 overflow-x-auto">
+            {['overview', 'tasks', 'budget', 'guests', 'timing', 'notes'].map(t => (
+              <button key={t} onClick={() => setActiveTab(t)} className={`px-3 py-1 rounded-lg text-sm ${activeTab === t ? 'bg-[#936142] text-white' : 'text-[#AC8A69]'}`}>
+                {t === 'overview' ? 'Обзор' : t === 'tasks' ? 'Задачи' : t === 'budget' ? 'Смета' : t === 'guests' ? 'Гости' : t === 'timing' ? 'Тайминг' : 'Заметки'}
               </button>
-              <h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2>
-            </div>
+            ))}
+          </div>
+          <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-[#AC8A69] hover:text-[#936142]"><Settings size={20}/></button>
+        </nav>
 
+        <main className="max-w-7xl mx-auto p-4 md:p-12 pb-32">
+          {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
-                  <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
-                  
-                  <div className="mb-4">
-                      <Input label="Имя организатора" placeholder="Ваше имя" value={formData.organizerName} onChange={e => setFormData({...formData, organizerName: e.target.value})} />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} />
-                      <Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Input label="Дата свадьбы" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
-                      <Input label="Гостей" type="number" placeholder="50" value={formData.guestsCount} onChange={e => setFormData({...formData, guestsCount: e.target.value})} />
-                  </div>
+              <div className="bg-[#936142] text-white p-8 rounded-3xl relative overflow-hidden shadow-2xl shadow-[#936142]/30">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                    <div>
+                        <h1 className="text-3xl md:text-6xl font-serif mb-2">{currentProject.groomName} <span className="text-[#C58970]">&</span> {currentProject.brideName}</h1>
+                        <div className="flex items-center gap-2 text-[#EBE5E0]"><MapPin size={18}/> {currentProject.venueName || 'Локация не выбрана'}</div>
+                    </div>
+                    <div className="text-center md:text-right">
+                        <div className="text-5xl md:text-8xl font-bold tracking-tighter leading-none">{getDaysUntil(currentProject.date)}</div>
+                        <div className="text-[10px] md:text-sm uppercase tracking-[0.2em] opacity-80 mt-2">Дней до свадьбы</div>
+                    </div>
+                </div>
+                <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#AC8A69] rounded-full mix-blend-overlay opacity-50 blur-3xl"></div><div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#C58970] rounded-full mix-blend-overlay opacity-50 blur-3xl"></div>
               </div>
-
-              <div className="space-y-4">
-                  <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider ml-1">Детали дня</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <select 
-                          className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]"
-                          value={formData.prepLocation}
-                          onChange={e => setFormData({...formData, prepLocation: e.target.value})}
-                      >
-                          <option value="home">Сборы дома</option>
-                          <option value="hotel">Сборы в отеле</option>
-                      </select>
-                      <select 
-                          className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]"
-                          value={formData.registrationType}
-                          onChange={e => setFormData({...formData, registrationType: e.target.value})}
-                      >
-                          <option value="official">ЗАГС</option>
-                          <option value="offsite">Выездная регистрация</option>
-                      </select>
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 flex flex-col justify-between h-32" onClick={() => setActiveTab('tasks')}><CheckSquare className="text-[#936142] mb-2"/><div><p className="text-2xl font-bold text-[#414942]">{currentProject.tasks.filter(t => !t.done).length}</p><p className="text-[10px] text-[#AC8A69] uppercase">Активных задач</p></div></Card>
+                <Card className="p-4 flex flex-col justify-between h-32" onClick={() => setActiveTab('budget')}><DollarSign className="text-[#936142] mb-2"/><div><p className="text-lg font-bold text-[#414942]">{Math.round((expensesSum.paid / (expensesSum.fact || 1)) * 100)}%</p><p className="text-[10px] text-[#AC8A69] uppercase">Бюджет оплачен</p></div></Card>
+                <Card className="p-4 flex flex-col justify-between h-32" onClick={() => setActiveTab('guests')}><Users className="text-[#936142] mb-2"/><div><p className="text-2xl font-bold text-[#414942]">{currentProject.guests.length}</p><p className="text-[10px] text-[#AC8A69] uppercase">Гостей</p></div></Card>
+                <Card className="p-4 flex flex-col justify-between h-32" onClick={() => setActiveTab('timing')}><Clock className="text-[#936142] mb-2"/><div><p className="text-lg font-bold text-[#414942]">{currentProject.timing[0]?.time || '09:00'}</p><p className="text-[10px] text-[#AC8A69] uppercase">Начало дня</p></div></Card>
               </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                  <Input label="Локация" placeholder="Название ресторана / отеля" value={formData.venueName} onChange={e => setFormData({...formData, venueName: e.target.value})} />
-                  <Input label="Адрес" placeholder="Улица, дом" value={formData.venueAddress} onChange={e => setFormData({...formData, venueAddress: e.target.value})} />
-              </div>
-
-              <Button onClick={handleCreateProject} className="w-full mt-8">Создать проект</Button>
+              <div><h3 className="text-lg md:text-xl font-serif text-[#414942] mb-4">Ближайшие дедлайны</h3><div className="grid gap-3 md:gap-4">{currentProject.tasks.filter(t => !t.done).sort((a,b) => new Date(a.deadline) - new Date(b.deadline)).slice(0, 3).map(task => (<div key={task.id} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-[#EBE5E0]"><div className="flex items-center gap-4"><div className="w-1.5 h-10 bg-[#C58970] rounded-full"></div><div><p className="font-medium text-sm text-[#414942]">{task.text}</p><p className="text-xs text-[#AC8A69]">{formatDate(task.deadline)}</p></div></div><Button variant="ghost" onClick={() => setActiveTab('tasks')}><ArrowRight size={18}/></Button></div>))}</div></div>
             </div>
-          </Card>
-        </div>
-      )}
+          )}
 
-      {view === 'project' && currentProject && (
-        <>
-           <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-[#EBE5E0] print:hidden">
-              <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                      <button onClick={() => setView('dashboard')} className="p-2 hover:bg-[#F9F7F5] rounded-full transition-colors text-[#AC8A69]">
-                          <ChevronLeft />
-                      </button>
-                      <span className="text-xl font-bold text-[#936142] tracking-tight hidden md:block">Wed.Control</span>
-                  </div>
-                  
-                  <div className="hidden md:flex gap-1 bg-[#F9F7F5] p-1 rounded-xl">
-                      {['overview', 'tasks', 'budget', 'guests', 'timing', 'notes'].map(tab => (
-                          <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === tab ? 'bg-white text-[#936142] shadow-sm' : 'text-[#CCBBA9] hover:text-[#414942]'}`}
-                          >
-                              {tab === 'overview' ? 'Обзор' : 
-                               tab === 'tasks' ? 'Задачи' : 
-                               tab === 'budget' ? 'Смета' : 
-                               tab === 'guests' ? 'Гости' :
-                               tab === 'timing' ? 'Тайминг' : 'Заметки'}
-                          </button>
-                      ))}
-                  </div>
-
-                  <div className="text-right flex items-center gap-4">
-                      <div className="hidden md:block">
-                          <p className="font-serif text-[#414942] font-medium text-sm md:text-base">{currentProject.groomName} & {currentProject.brideName}</p>
-                          <p className="text-[10px] md:text-xs text-[#AC8A69]">{formatDate(currentProject.date)}</p>
-                      </div>
-                      <button onClick={() => setIsSettingsOpen(true)} className="p-2 text-[#AC8A69] hover:text-[#936142] hover:bg-[#F9F7F5] rounded-full transition-colors">
-                          <Settings size={20} />
-                      </button>
-                  </div>
-              </div>
-              {/* Mobile Nav */}
-              <div className="md:hidden overflow-x-auto whitespace-nowrap px-6 pb-2 pt-2 scrollbar-hide border-b border-[#EBE5E0] bg-white/50 backdrop-blur-sm print:hidden">
-                   {['overview', 'tasks', 'budget', 'guests', 'timing', 'notes'].map(tab => (
-                          <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all inline-block mr-2 ${activeTab === tab ? 'bg-white text-[#936142] shadow-sm ring-1 ring-[#936142]/10' : 'text-[#CCBBA9]'}`}
-                          >
-                              {tab === 'overview' ? 'Обзор' : 
-                               tab === 'tasks' ? 'Задачи' : 
-                               tab === 'budget' ? 'Смета' : 
-                               tab === 'guests' ? 'Гости' :
-                               tab === 'timing' ? 'Тайминг' : 'Заметки'}
-                          </button>
-                      ))}
-              </div>
-           </nav>
-
-           <main className="max-w-7xl mx-auto p-4 md:p-12 pb-32 print:p-0">
-              
-              {activeTab === 'overview' && (
-                  <div className="space-y-6 md:space-y-8">
-                      {/* Hero */}
-                      <div className="relative rounded-[2rem] overflow-hidden bg-[#936142] text-white p-8 md:p-12 text-center md:text-left shadow-2xl shadow-[#936142]/30">
-                          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                              <div>
-                                  <h1 className="text-3xl md:text-6xl font-serif mb-4">{currentProject.groomName} <span className="text-[#C58970]">&</span> {currentProject.brideName}</h1>
-                                  <div className="flex items-center justify-center md:justify-start gap-4 text-[#EBE5E0]">
-                                      <MapPin size={18}/>
-                                      <span className="text-base md:text-lg tracking-wide">{currentProject.venueName || 'Локация не выбрана'}</span>
-                                  </div>
-                              </div>
-                              <div className="text-center md:text-right">
-                                  <div className="text-5xl md:text-8xl font-bold tracking-tighter leading-none">{getDaysUntil(currentProject.date)}</div>
-                                  <div className="text-[10px] md:text-sm uppercase tracking-[0.2em] opacity-80 mt-2">Дней до свадьбы</div>
-                              </div>
-                          </div>
-                          {/* Decorative circles */}
-                          <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#AC8A69] rounded-full mix-blend-overlay opacity-50 blur-3xl"></div>
-                          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#C58970] rounded-full mix-blend-overlay opacity-50 blur-3xl"></div>
-                      </div>
-
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                          <Card className="p-4 md:p-6 flex flex-col justify-between h-32 md:h-40" onClick={() => setActiveTab('tasks')}>
-                              <CheckSquare className="text-[#936142] mb-2 md:mb-4" size={24} md:size={3
+          {activeTab === 'tasks' && <TasksView tasks={currentProject.tasks} updateProject={updateProject} formatDate={formatDate} />}
+          {activeTab === 'budget' && <BudgetView expenses={currentProject.expenses} updateProject={updateProject} downloadCSV={downloadCSV} />}
+          {activeTab === 'guests' && <GuestsView guests={currentProject.guests} updateProject={updateProject} downloadCSV={downloadCSV} />}
+          {activeTab === 'timing' && <TimingView timing={currentProject.timing} updateProject={updateProject} downloadCSV={downloadCSV} />}
+          {activeTab === 'notes' && <NotesView notes={currentProject.notes} updateProject={updateProject} />}
+        </main>
+      </div>
+    );
+  }
+  return null;
+}
