@@ -334,9 +334,8 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
   const [data, setData] = useState({ ...project });
 
   return (
-    // FIX: overflow-y-auto на обертке, чтобы скроллить весь экран, если модалка высокая
-    <div className="fixed inset-0 z-50 flex justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-auto min-h-min">
+    <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col my-8 min-h-min">
         <div className="p-6 border-b border-[#EBE5E0] flex justify-between items-center shrink-0">
           <h3 className="text-xl font-bold text-[#414942]">Настройки проекта</h3>
           <button onClick={onClose} className="p-2 hover:bg-[#F9F7F5] rounded-full text-[#AC8A69]"><X size={20} /></button>
@@ -392,8 +391,8 @@ const ProfileModal = ({ user, onClose, onSave }) => {
     const [secret, setSecret] = useState(user?.secret || '');
 
     return (
-        <div className="fixed inset-0 z-50 flex justify-center p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-auto">
+        <div className="fixed inset-0 z-50 flex justify-center items-start p-4 bg-[#414942]/50 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative my-8">
                 <button onClick={onClose} className="absolute top-4 right-4 text-[#AC8A69]"><X size={20} /></button>
                 <h3 className="text-xl font-bold text-[#414942] mb-6">Ваш профиль</h3>
                 <Input label="Имя" value={name} onChange={e => setName(e.target.value)} />
@@ -690,6 +689,7 @@ export default function App() {
                     <div className="grid grid-cols-1 gap-4"><Input label="Локация" placeholder="Название ресторана / отеля" value={formData.venueName} onChange={e => setFormData({...formData, venueName: e.target.value})} /><Input label="Адрес" placeholder="Улица, дом" value={formData.venueAddress} onChange={e => setFormData({...formData, venueAddress: e.target.value})} /></div>
                     <div className="bg-[#F9F7F5] p-4 rounded-xl flex items-center gap-3 border border border-[#AC8A69]/20"><Key className="text-[#936142]" /><div className="flex-1"><p className="text-xs font-bold text-[#AC8A69] uppercase">Пароль для клиента (авто)</p><div className="flex gap-2"><input className="bg-transparent font-mono text-xl font-bold text-[#414942] outline-none w-full" value={formData.clientPassword} onChange={e => setFormData({...formData, clientPassword: e.target.value})} /><button onClick={() => setFormData({...formData, clientPassword: Math.floor(1000 + Math.random() * 9000).toString()})} className="text-[#AC8A69] hover:text-[#936142]"><Edit3 size={16}/></button></div></div></div>
                     <Button onClick={createProject} className="w-full mt-8">Создать проект</Button>
+                    <div className="h-12 md:hidden"></div> {/* Extra spacing for mobile */}
                 </div>
             </Card>
         </div>
