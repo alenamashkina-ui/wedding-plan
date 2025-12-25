@@ -349,7 +349,7 @@ const SettingsModal = ({ project, onClose, onSave, onDelete, onArchive }) => {
                  <LinkIcon size={16} className="opacity-80"/>
               </div>
               <div className="flex gap-2 items-center bg-white/10 p-2 rounded-xl border border-white/20 mb-3">
-                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}/?id=${project.id}`} readOnly />
+                 <input className="bg-transparent text-sm w-full outline-none text-white placeholder-white/50" value={`${SITE_URL}?id=${project.id}`} readOnly />
                  <button onClick={() => alert('Ссылка скопирована (демо)')}><Copy size={16}/></button>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -425,8 +425,6 @@ export default function App() {
   useEffect(() => localStorage.setItem('wedding_projects', JSON.stringify(projects)), [projects]);
   useEffect(() => localStorage.setItem('wedding_team', JSON.stringify(team)), [team]);
   useEffect(() => localStorage.setItem('wedding_user', JSON.stringify(user)), [user]);
-
-  // SCROLL RESET REMOVED for better native feel
 
   const createProject = () => {
     const creationDate = new Date();
@@ -671,27 +669,30 @@ export default function App() {
   if (view === 'create') {
     return (
       <div className="min-h-screen bg-[#F9F7F5] flex items-center justify-center p-6 font-[Montserrat] pb-32">
-        <Card className="w-full max-w-2xl p-8 md:p-12 animate-slideUp">
-          <div className="flex items-center mb-8"><button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={24}/></button><h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2></div>
-          <div className="space-y-6">
-            <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
-                <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
-                <div className="mb-4">
-                    <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">Ответственный организатор</label>
-                    <select className="w-full bg-white border-none rounded-xl p-4 text-[#414942] outline-none" value={formData.organizerId} onChange={e => setFormData({...formData, organizerId: e.target.value})}>
-                        <option value="owner">Владелец (Я)</option>
-                        {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
+        {/* FIX: Убрали жесткое центрирование, добавили my-auto для больших экранов */}
+        <div className="w-full max-w-2xl flex flex-col justify-center min-h-min">
+            <Card className="p-8 md:p-12 animate-slideUp">
+                <div className="flex items-center mb-8"><button onClick={() => setView('dashboard')} className="mr-4 text-[#AC8A69] hover:text-[#936142]"><ChevronLeft size={24}/></button><h2 className="text-3xl font-bold text-[#414942]">Создание истории</h2></div>
+                <div className="space-y-6">
+                    <div className="p-6 bg-[#F9F7F5] rounded-xl space-y-6">
+                        <p className="text-[#936142] font-semibold text-sm uppercase tracking-wider mb-4 border-b border-[#CCBBA9]/20 pb-2">О паре</p>
+                        <div className="mb-4">
+                            <label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider mb-2 ml-1">Ответственный организатор</label>
+                            <select className="w-full bg-white border-none rounded-xl p-4 text-[#414942] outline-none" value={formData.organizerId} onChange={e => setFormData({...formData, organizerId: e.target.value})}>
+                                <option value="owner">Владелец (Я)</option>
+                                {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} /><Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} /></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Дата свадьбы" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /><Input label="Гостей" type="number" placeholder="50" value={formData.guestsCount} onChange={e => setFormData({...formData, guestsCount: e.target.value})} /></div>
+                    </div>
+                    <div className="space-y-4"><label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider ml-1">Детали дня</label><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><select className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]" value={formData.prepLocation} onChange={e => setFormData({...formData, prepLocation: e.target.value})}><option value="home">Сборы дома</option><option value="hotel">Сборы в отеле</option></select><select className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]" value={formData.registrationType} onChange={e => setFormData({...formData, registrationType: e.target.value})}><option value="official">ЗАГС</option><option value="offsite">Выездная регистрация</option></select></div></div>
+                    <div className="grid grid-cols-1 gap-4"><Input label="Локация" placeholder="Название ресторана / отеля" value={formData.venueName} onChange={e => setFormData({...formData, venueName: e.target.value})} /><Input label="Адрес" placeholder="Улица, дом" value={formData.venueAddress} onChange={e => setFormData({...formData, venueAddress: e.target.value})} /></div>
+                    <div className="bg-[#F9F7F5] p-4 rounded-xl flex items-center gap-3 border border border-[#AC8A69]/20"><Key className="text-[#936142]" /><div className="flex-1"><p className="text-xs font-bold text-[#AC8A69] uppercase">Пароль для клиента (авто)</p><div className="flex gap-2"><input className="bg-transparent font-mono text-xl font-bold text-[#414942] outline-none w-full" value={formData.clientPassword} onChange={e => setFormData({...formData, clientPassword: e.target.value})} /><button onClick={() => setFormData({...formData, clientPassword: Math.floor(1000 + Math.random() * 9000).toString()})} className="text-[#AC8A69] hover:text-[#936142]"><Edit3 size={16}/></button></div></div></div>
+                    <Button onClick={createProject} className="w-full mt-8">Создать проект</Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Жених" placeholder="Имя" value={formData.groomName} onChange={e => setFormData({...formData, groomName: e.target.value})} /><Input label="Невеста" placeholder="Имя" value={formData.brideName} onChange={e => setFormData({...formData, brideName: e.target.value})} /></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6"><Input label="Дата свадьбы" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /><Input label="Гостей" type="number" placeholder="50" value={formData.guestsCount} onChange={e => setFormData({...formData, guestsCount: e.target.value})} /></div>
-            </div>
-            <div className="space-y-4"><label className="block text-xs font-semibold text-[#AC8A69] uppercase tracking-wider ml-1">Детали дня</label><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><select className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]" value={formData.prepLocation} onChange={e => setFormData({...formData, prepLocation: e.target.value})}><option value="home">Сборы дома</option><option value="hotel">Сборы в отеле</option></select><select className="w-full bg-white border border-[#EBE5E0] rounded-xl p-4 text-[#414942] outline-none focus:border-[#AC8A69]" value={formData.registrationType} onChange={e => setFormData({...formData, registrationType: e.target.value})}><option value="official">ЗАГС</option><option value="offsite">Выездная регистрация</option></select></div></div>
-            <div className="grid grid-cols-1 gap-4"><Input label="Локация" placeholder="Название ресторана / отеля" value={formData.venueName} onChange={e => setFormData({...formData, venueName: e.target.value})} /><Input label="Адрес" placeholder="Улица, дом" value={formData.venueAddress} onChange={e => setFormData({...formData, venueAddress: e.target.value})} /></div>
-            <div className="bg-[#F9F7F5] p-4 rounded-xl flex items-center gap-3 border border border-[#AC8A69]/20"><Key className="text-[#936142]" /><div className="flex-1"><p className="text-xs font-bold text-[#AC8A69] uppercase">Пароль для клиента (авто)</p><div className="flex gap-2"><input className="bg-transparent font-mono text-xl font-bold text-[#414942] outline-none w-full" value={formData.clientPassword} onChange={e => setFormData({...formData, clientPassword: e.target.value})} /><button onClick={() => setFormData({...formData, clientPassword: Math.floor(1000 + Math.random() * 9000).toString()})} className="text-[#AC8A69] hover:text-[#936142]"><Edit3 size={16}/></button></div></div></div>
-            <Button onClick={createProject} className="w-full mt-8">Создать проект</Button>
-          </div>
-        </Card>
+            </Card>
+        </div>
       </div>
     );
   }
